@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CivilCalci — Staircase Calculator</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<style>
+.stair-input-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+.stair-dim-box { background:#f0f7ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px; }
+.stair-dim-box label { font-size:11px; font-weight:700; color:#374151; display:block; margin-bottom:4px; }
+.stair-dim-box input, .stair-dim-box select {
+  padding:8px 10px; border-radius:7px; border:1px solid #e5e7eb;
+  font-size:13px; width:100%; box-sizing:border-box;
+}
+.stair-check { display:flex; align-items:center; gap:6px; margin-top:4px; font-size:12px; color:#555; }
+.stair-check input[type=checkbox] { width:auto; }
+.check-results { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:10px; }
+.check-box { background:#f8fafd; border:1px solid #e5e7eb; border-radius:7px; padding:8px; text-align:center; }
+.check-box .cv { font-size:16px; font-weight:800; }
+.check-box .cl { font-size:10px; color:#6b7280; }
+.check-pass { color:#16a34a; }
+.check-fail { color:#dc2626; }
+.stair-formula { background:#fffbeb; border:1px solid #fbbf24; border-radius:8px; padding:10px; margin:8px 0; font-size:12px; color:#92400e; }
+.stair-material-row { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:8px 0; }
+.stair-mat-box { background:#f0f7ff; border:1px solid #bfdbfe; border-radius:7px; padding:8px; text-align:center; }
+.stair-mat-box .smv { font-size:14px; font-weight:800; color:#1e40af; }
+.stair-mat-box .sml { font-size:10px; color:#6b7280; }
+/* Stair type icon buttons */
+.stair-type-icon { display:flex; align-items:center; gap:4px; flex-direction:column; }
+.stair-type-icon canvas { border-radius:4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CivilCalci — Advanced Estimator</h1>
+  <p>Volume &amp; material calculators &bull; steel &amp; BBS generator &bull; cost estimation &bull; PDF report</p>
+</header>
+
+<div class="topnav">
+  <a class="tab-btn" href="index.html">Calculators</a>
+  <a class="tab-btn" href="steel-bbs.html">Steel &amp; BBS</a>
+  <a class="tab-btn" href="mix-design.html">Mix Design</a>
+  <a class="tab-btn" href="unit-converter.html">Unit Converter</a>
+  <a class="tab-btn" href="cost-estimate.html">Cost &amp; Estimate</a>
+  <a class="tab-btn" href="staircase.html">Staircase</a>
+  <a class="tab-btn" href="load-calc.html">Load Calc</a>
+  <a class="tab-btn" href="is-codes.html">IS Codes</a>
+</div>
+
+<div class="content">
+  <div class="panel">
+
+    <!-- STAIR TYPE SELECTOR -->
+    <div class="card">
+      <h3>🪜 Staircase Calculator</h3>
+      <div class="small muted">Select stair type, enter dimensions, and get volume + material estimate.</div>
+
+      <div style="margin-top:12px;">
+        <label style="font-weight:700;">Stair Type</label>
+        <div class="stair-type-grid" style="margin-top:8px;">
+
+          <div class="stair-type-btn active" onclick="selectStairType('straight')" id="st_straight">
+            <svg viewBox="0 0 52 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="26" width="8" height="8" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="10" y="20" width="8" height="8" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="18" y="14" width="8" height="8" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="26" y="8" width="8" height="8" fill="#42a5f5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="34" y="2" width="8" height="8" fill="#42a5f5" stroke="#90caf9" stroke-width="0.5"/>
+              <text x="2" y="36" font-size="4" fill="#555">STRAIGHT</text>
+            </svg>
+            <span>Straight</span>
+          </div>
+
+          <div class="stair-type-btn" onclick="selectStairType('doglegged')" id="st_doglegged">
+            <svg viewBox="0 0 52 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="26" width="6" height="6" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="8" y="21" width="6" height="6" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="14" y="16" width="6" height="6" fill="#42a5f5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="14" y="10" width="14" height="6" fill="#64b5f6" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="28" y="16" width="6" height="6" fill="#42a5f5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="34" y="21" width="6" height="6" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="40" y="26" width="6" height="6" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <text x="2" y="36" font-size="4" fill="#555">DOG-LEG</text>
+            </svg>
+            <span>Dog-Legged</span>
+          </div>
+
+          <div class="stair-type-btn" onclick="selectStairType('l_shaped')" id="st_l_shaped">
+            <svg viewBox="0 0 52 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="20" width="6" height="6" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="8" y="15" width="6" height="6" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="14" y="10" width="6" height="6" fill="#42a5f5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="20" y="5" width="6" height="6" fill="#42a5f5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="26" y="5" width="6" height="6" fill="#64b5f6" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="32" y="5" width="6" height="6" fill="#64b5f6" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="38" y="5" width="6" height="6" fill="#64b5f6" stroke="#90caf9" stroke-width="0.5"/>
+              <text x="2" y="36" font-size="4" fill="#555">L-SHAPED</text>
+            </svg>
+            <span>L-Shaped</span>
+          </div>
+
+          <div class="stair-type-btn" onclick="selectStairType('u_shaped')" id="st_u_shaped">
+            <svg viewBox="0 0 52 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="26" width="5" height="5" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="2" y="20" width="5" height="5" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="2" y="14" width="5" height="5" fill="#42a5f5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="2" y="8" width="5" height="5" fill="#42a5f5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="7" y="8" width="10" height="5" fill="#64b5f6" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="17" y="8" width="5" height="5" fill="#42a5f5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="17" y="14" width="5" height="5" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="17" y="20" width="5" height="5" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="17" y="26" width="5" height="5" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <text x="2" y="36" font-size="4" fill="#555">U-SHAPED</text>
+            </svg>
+            <span>U-Shaped</span>
+          </div>
+
+          <div class="stair-type-btn" onclick="selectStairType('spiral')" id="st_spiral">
+            <svg viewBox="0 0 52 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="26" cy="18" r="14" stroke="#42a5f5" stroke-width="1" fill="none"/>
+              <path d="M26 18 Q36 8 40 18 Q44 28 26 28 Q8 28 8 18 Q8 10 20 8" stroke="#1e88e5" stroke-width="2" fill="none"/>
+              <text x="2" y="36" font-size="4" fill="#555">SPIRAL</text>
+            </svg>
+            <span>Spiral</span>
+          </div>
+
+          <div class="stair-type-btn" onclick="selectStairType('open')" id="st_open">
+            <svg viewBox="0 0 52 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="26" width="6" height="6" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="8" y="20" width="6" height="6" fill="#1e88e5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="14" y="14" width="6" height="6" fill="#42a5f5" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="20" y="8" width="6" height="6" fill="#64b5f6" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="36" y="8" width="6" height="6" fill="#64b5f6" stroke="#90caf9" stroke-width="0.5"/>
+              <rect x="42" y="14" width="6" height="6" fill="#42a5f5" stroke="#90caf9" stroke-width="0.5"/>
+              <line x1="26" y1="11" x2="36" y2="11" stroke="#aaa" stroke-width="1.5" stroke-dasharray="3,2"/>
+              <text x="2" y="36" font-size="4" fill="#555">OPEN NEWEL</text>
+            </svg>
+            <span>Open Newel</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Live Visual -->
+      <div class="visual-canvas-wrap" style="min-height:180px;">
+        <canvas id="stair_canvas" width="700" height="260"></canvas>
+      </div>
+
+      <!-- Inputs -->
+      <div class="stair-input-grid">
+        <div class="stair-dim-box">
+          <label>Rise – R (m)</label>
+          <select id="stair_rise_sel" onchange="stairSelChange('rise')">
+            <option value="0.125">0.125 m (12.5 cm)</option>
+            <option value="0.150" selected>0.150 m (15 cm) ✓</option>
+            <option value="0.165">0.165 m (16.5 cm)</option>
+            <option value="0.175">0.175 m (17.5 cm)</option>
+            <option value="0.190">0.190 m (19 cm)</option>
+            <option value="0.200">0.200 m (20 cm)</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input id="stair_rise" type="number" value="0.150" step="0.005" min="0.10" max="0.25" style="margin-top:5px;" oninput="updateStairVisual()">
+        </div>
+
+        <div class="stair-dim-box">
+          <label>Tread – T (m)</label>
+          <select id="stair_tread_sel" onchange="stairSelChange('tread')">
+            <option value="0.200">0.200 m (20 cm)</option>
+            <option value="0.250" selected>0.250 m (25 cm) ✓</option>
+            <option value="0.270">0.270 m (27 cm)</option>
+            <option value="0.300">0.300 m (30 cm)</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input id="stair_tread" type="number" value="0.250" step="0.005" min="0.15" max="0.40" style="margin-top:5px;" oninput="updateStairVisual()">
+        </div>
+
+        <div class="stair-dim-box">
+          <label>Width – W (m)</label>
+          <select id="stair_width_sel" onchange="stairSelChange('width')">
+            <option value="0.9">0.9 m (Min)</option>
+            <option value="1.0">1.0 m</option>
+            <option value="1.2" selected>1.2 m (Standard)</option>
+            <option value="1.5">1.5 m</option>
+            <option value="1.8">1.8 m</option>
+            <option value="2.0">2.0 m</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input id="stair_width" type="number" value="1.2" step="0.05" min="0.8" max="4" style="margin-top:5px;" oninput="updateStairVisual()">
+        </div>
+
+        <div class="stair-dim-box">
+          <label>No. of Steps – N</label>
+          <select id="stair_steps_sel" onchange="stairSelChange('steps')">
+            <option value="8">8 steps</option>
+            <option value="10">10 steps</option>
+            <option value="12" selected>12 steps</option>
+            <option value="14">14 steps</option>
+            <option value="16">16 steps</option>
+            <option value="18">18 steps</option>
+            <option value="20">20 steps</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input id="stair_steps" type="number" value="12" step="1" min="3" max="50" style="margin-top:5px;" oninput="updateStairVisual()">
+        </div>
+
+        <div class="stair-dim-box">
+          <label>Waist Slab Thickness (m)</label>
+          <select id="stair_waist_sel" onchange="stairSelChange('waist')">
+            <option value="0.10">0.10 m</option>
+            <option value="0.12">0.12 m</option>
+            <option value="0.15" selected>0.15 m</option>
+            <option value="0.18">0.18 m</option>
+            <option value="0.20">0.20 m</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input id="stair_waist" type="number" value="0.15" step="0.01" min="0.08" max="0.30" style="margin-top:5px;" oninput="updateStairVisual()">
+        </div>
+
+        <div class="stair-dim-box">
+          <label>Mix Grade</label>
+          <select id="stair_grade">
+            <option>M15</option><option selected>M20</option>
+            <option>M25</option><option>M30</option>
+            <option value="custom">Custom</option>
+          </select>
+          <div id="stair_custom_grade_row" style="display:none;margin-top:5px;">
+            <input type="number" id="stair_custom_fck" placeholder="Custom fck MPa">
+          </div>
+        </div>
+      </div>
+
+      <!-- Landing -->
+      <div class="load-section" style="margin-top:10px;">
+        <div class="load-section-title">Landing Details (if applicable)</div>
+        <div class="stair-input-grid">
+          <div>
+            <label>Landing Length (m)</label>
+            <input id="stair_land_l" type="number" value="1.2" step="0.05" min="0">
+          </div>
+          <div>
+            <label>Landing Width (m)</label>
+            <input id="stair_land_w" type="number" value="1.2" step="0.05" min="0">
+          </div>
+          <div>
+            <label>Landing Thickness (m)</label>
+            <input id="stair_land_t" type="number" value="0.15" step="0.01" min="0">
+          </div>
+          <div>
+            <label>No. of Landings</label>
+            <select id="stair_land_n">
+              <option value="0">0 (None)</option>
+              <option value="1" selected>1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- IS Code Check -->
+      <div class="stair-formula">
+        <strong>IS 456 / NBC Check:</strong> 2R + T = 550–650 mm (ideal 600 mm)<br>
+        Rise: 125–190 mm &nbsp;|&nbsp; Tread: 200–300 mm &nbsp;|&nbsp; Min Width: 900 mm
+      </div>
+
+      <div id="stair_check_results" class="check-results" style="display:none;"></div>
+
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn" style="flex:2;" onclick="calcStaircase()">✅ Calculate Staircase</button>
+        <button class="btn btn-orange" style="flex:1;" onclick="resetStair()">↺ Reset</button>
+      </div>
+
+      <div id="stair_output" style="display:none;margin-top:14px;"></div>
+
+    </div>
+
+    <!-- Reference Card -->
+    <div class="card">
+      <h3>Staircase Design Reference</h3>
+      <div class="small muted">IS 456 &amp; NBC guidelines for staircase design.</div>
+      <div style="overflow-x:auto;margin-top:10px;">
+        <table style="font-size:12px;min-width:360px;">
+          <thead><tr><th>Parameter</th><th>Min</th><th>Max</th><th>Ideal</th></tr></thead>
+          <tbody>
+            <tr><td>Rise (R)</td><td>125 mm</td><td>190 mm</td><td>150–165 mm</td></tr>
+            <tr><td>Tread (T)</td><td>200 mm</td><td>300 mm</td><td>250–270 mm</td></tr>
+            <tr><td>2R + T</td><td>550 mm</td><td>650 mm</td><td>600 mm</td></tr>
+            <tr><td>R + T</td><td>400 mm</td><td>450 mm</td><td>420 mm</td></tr>
+            <tr><td>Stair Width</td><td>900 mm</td><td>—</td><td>1200 mm</td></tr>
+            <tr><td>Head Room</td><td>2100 mm</td><td>—</td><td>2200 mm</td></tr>
+            <tr><td>Pitch Angle</td><td>20°</td><td>38°</td><td>25–33°</td></tr>
+            <tr><td>Waist Slab</td><td>100 mm</td><td>200 mm</td><td>125–150 mm</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="md-info" style="margin-top:10px;">
+        <strong>Blondel's Formula:</strong> 2R + T = 600 mm (±50 mm)<br>
+        <strong>Pitch</strong> = arctan(R/T) — should be 25°–33° for comfort<br>
+        <strong>Going</strong> = (N−1) × T | <strong>Rise</strong> = Floor Height / N
+      </div>
+    </div>
+
+  </div><!-- end panel -->
+
+  <!-- RIGHT: Summary -->
+  <aside class="summary">
+    <div class="card">
+      <h4>Estimate Summary</h4>
+      <div class="small muted">Enter local rates below and add items from calculators.</div>
+      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label>Cement (₹/50kg bag)</label><input id="rate_cement" type="number" step="0.01" placeholder="e.g. 420" oninput="syncRateInputs('cement',this.value)"></div>
+        <div><label>Sand (₹/m³)</label><input id="rate_sand" type="number" step="0.01" placeholder="e.g. 1600" oninput="syncRateInputs('sand',this.value)"></div>
+        <div><label>Aggregate (₹/m³)</label><input id="rate_agg" type="number" step="0.01" placeholder="e.g. 2000" oninput="syncRateInputs('agg',this.value)"></div>
+        <div><label>Steel (₹/kg)</label><input id="rate_steel" type="number" step="0.01" placeholder="e.g. 70" oninput="syncRateInputs('steel',this.value)"></div>
+      </div>
+      <button class="btn" style="margin-top:10px;" onclick="recomputeEstimate()">Recompute Estimate</button>
+      <div class="estimate-table-wrap">
+        <table id="estimate_table">
+          <thead>
+            <tr><th>#</th><th>Item</th><th>Vol (m³)</th><th>Cement</th><th>Sand</th><th>Agg</th><th>Steel</th><th>Grade</th><th>Cost (₹)</th><th>Notes</th><th>Del</th></tr>
+          </thead>
+          <tbody id="estimate_tbody"></tbody>
+        </table>
+      </div>
+      <div class="total-line">
+        <div>Total Project Cost</div>
+        <div id="estimate_total">₹ 0</div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" style="flex:1;" onclick="exportPDF()">📄 Export PDF</button>
+        <button class="btn btn-orange" style="flex:1;" onclick="printReport()">🖨 Print</button>
+        <button class="btn btn-red" style="flex:1;" onclick="clearEstimate()">🗑 Clear All</button>
+      </div>
+    </div>
+    <div class="card">
+      <h4>IS Codes &amp; Notes</h4>
+      <ul class="is-list">
+        <li><strong>IS 456</strong> : Plain &amp; Reinforced Concrete</li>
+        <li><strong>NBC</strong> : National Building Code — Staircase</li>
+        <li><strong>IS 875</strong> : Live Load on Stairs = 3–5 kN/m²</li>
+      </ul>
+    </div>
+  </aside>
+
+</div>
+
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+
+<script src="script.js"></script>
+<script src="visuals.js"></script>
+<script>
+/* ===== STAIR TYPE ===== */
+let currentStairType = 'straight';
+function selectStairType(type) {
+  currentStairType = type;
+  document.querySelectorAll('.stair-type-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('st_' + type).classList.add('active');
+  updateStairVisual();
+}
+
+function stairSelChange(field) {
+  const map = { rise:'stair_rise', tread:'stair_tread', width:'stair_width',
+                steps:'stair_steps', waist:'stair_waist' };
+  const selMap = { rise:'stair_rise_sel', tread:'stair_tread_sel', width:'stair_width_sel',
+                   steps:'stair_steps_sel', waist:'stair_waist_sel' };
+  const v = document.getElementById(selMap[field]).value;
+  if (v !== 'custom') { document.getElementById(map[field]).value = v; }
+  updateStairVisual();
+}
+
+function updateStairVisual() {
+  const R = parseFloat(document.getElementById('stair_rise').value) || 0.15;
+  const T = parseFloat(document.getElementById('stair_tread').value) || 0.25;
+  const W = parseFloat(document.getElementById('stair_width').value) || 1.2;
+  const N = parseInt(document.getElementById('stair_steps').value) || 12;
+  drawStaircase('stair_canvas', currentStairType, {steps:N, rise:R, tread:T, width:W});
+
+  // Live IS check
+  const check2RT = (2*R*1000 + T*1000);
+  const checkRT  = (R*1000 + T*1000);
+  const checkEl  = document.getElementById('stair_check_results');
+  checkEl.style.display = 'grid';
+  const pass = (v,mn,mx) => v>=mn && v<=mx;
+  checkEl.innerHTML = `
+    <div class="check-box"><div class="cv ${pass(R*1000,125,190)?'check-pass':'check-fail'}">${(R*1000).toFixed(0)} mm</div><div class="cl">Rise (125–190)</div></div>
+    <div class="check-box"><div class="cv ${pass(T*1000,200,300)?'check-pass':'check-fail'}">${(T*1000).toFixed(0)} mm</div><div class="cl">Tread (200–300)</div></div>
+    <div class="check-box"><div class="cv ${pass(check2RT,550,650)?'check-pass':'check-fail'}">${check2RT.toFixed(0)} mm</div><div class="cl">2R+T (550–650)</div></div>
+    <div class="check-box"><div class="cv ${pass(checkRT,400,450)?'check-pass':'check-fail'}">${checkRT.toFixed(0)} mm</div><div class="cl">R+T (400–450)</div></div>
+    <div class="check-box"><div class="cv ${pass(W,0.9,10)?'check-pass':'check-fail'}">${W.toFixed(2)} m</div><div class="cl">Width (≥0.9 m)</div></div>
+    <div class="check-box"><div class="cv">${(Math.atan(R/T)*180/Math.PI).toFixed(1)}°</div><div class="cl">Pitch (20–38°)</div></div>
+  `;
+}
+
+/* ===== CALCULATE STAIRCASE ===== */
+function calcStaircase() {
+  const R  = parseFloat(document.getElementById('stair_rise').value)  || 0.15;
+  const T  = parseFloat(document.getElementById('stair_tread').value) || 0.25;
+  const W  = parseFloat(document.getElementById('stair_width').value) || 1.2;
+  const N  = parseInt(document.getElementById('stair_steps').value)   || 12;
+  const Tw = parseFloat(document.getElementById('stair_waist').value) || 0.15;
+
+  const landL = parseFloat(document.getElementById('stair_land_l').value) || 0;
+  const landW = parseFloat(document.getElementById('stair_land_w').value) || 0;
+  const landT = parseFloat(document.getElementById('stair_land_t').value) || 0;
+  const landN = parseInt(document.getElementById('stair_land_n').value)   || 0;
+
+  const gradeVal = document.getElementById('stair_grade').value;
+  let grade = gradeVal === 'custom' ?
+    'M' + (parseFloat(document.getElementById('stair_custom_fck').value) || 20) : gradeVal;
+
+  // Geometry
+  const going  = (N - 1) * T;
+  const height = N * R;
+  const slantL = Math.sqrt(going * going + height * height);
+  const pitch  = Math.atan(R / T) * 180 / Math.PI;
+
+  // Volumes
+  // Waist slab volume
+  const volWaist = slantL * W * Tw;
+  // Step triangles volume (per step)
+  const volSteps = N * 0.5 * R * T * W;
+  // Landing volume
+  const volLanding = landN * landL * landW * landT;
+  // Total
+  const volTotal = volWaist + volSteps + volLanding;
+
+  // Blondel check
+  const blondel = 2 * R * 1000 + T * 1000;
+  const blondelOk = blondel >= 550 && blondel <= 650;
+
+  const mat = materialsForGrade(grade, volTotal);
+
+  const outEl = document.getElementById('stair_output');
+  outEl.style.display = 'block';
+
+  const item = {
+    label: `Staircase (${currentStairType}, ${N} steps, ${grade})`,
+    vol: volTotal, grade,
+    cementBags: mat.cementBags, sand_m3: mat.sand_m3,
+    agg_m3: mat.agg_m3, cement_kg: mat.cement_kg,
+    steel_kg: 0, cost: 0, notes: 'Staircase'
+  };
+  const encoded = encodeURIComponent(JSON.stringify(item));
+
+  outEl.innerHTML = `
+    <div class="result-card">
+      <div style="font-weight:800;font-size:15px;color:#1e40af;margin-bottom:10px;">
+        📊 Staircase Result — ${currentStairType.toUpperCase().replace('_',' ')} | ${grade}
+      </div>
+      <div style="font-size:12px;color:#374151;background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:10px;margin-bottom:10px;line-height:2;">
+        <b>Going:</b> ${going.toFixed(3)} m &nbsp;|&nbsp; <b>Height:</b> ${height.toFixed(3)} m<br>
+        <b>Slant Length:</b> ${slantL.toFixed(3)} m &nbsp;|&nbsp; <b>Pitch:</b> ${pitch.toFixed(1)}°<br>
+        <b>Blondel's Check (2R+T):</b>
+        <span style="color:${blondelOk?'#16a34a':'#dc2626'};font-weight:700;">
+          ${blondel.toFixed(0)} mm — ${blondelOk?'✅ PASS':'⚠ CHECK'}</span>
+      </div>
+      <div class="result-grid">
+        <div class="result-item"><div class="rv">${volWaist.toFixed(3)}</div><div class="rl">Waist Slab (m³)</div></div>
+        <div class="result-item"><div class="rv">${volSteps.toFixed(3)}</div><div class="rl">Steps Volume (m³)</div></div>
+        <div class="result-item"><div class="rv">${volLanding.toFixed(3)}</div><div class="rl">Landing (m³)</div></div>
+        <div class="result-item"><div class="rv">${volTotal.toFixed(3)}</div><div class="rl">Total Concrete (m³)</div></div>
+        <div class="result-item"><div class="rv">${mat.cementBags.toFixed(1)}</div><div class="rl">Cement Bags</div></div>
+        <div class="result-item"><div class="rv">${mat.sand_m3.toFixed(3)}</div><div class="rl">Sand (m³)</div></div>
+        <div class="result-item"><div class="rv">${mat.agg_m3.toFixed(3)}</div><div class="rl">Aggregate (m³)</div></div>
+        <div class="result-item"><div class="rv">${pitch.toFixed(1)}°</div><div class="rl">Pitch Angle</div></div>
+      </div>
+      <button class="btn" style="margin-top:12px;" onclick="addItemToEstimate(decodeURIComponent('${encoded}'))">
+        ➕ Add to Estimate
+      </button>
+    </div>
+  `;
+}
+
+function resetStair() {
+  document.getElementById('stair_rise').value = '0.150';
+  document.getElementById('stair_tread').value = '0.250';
+  document.getElementById('stair_width').value = '1.2';
+  document.getElementById('stair_steps').value = '12';
+  document.getElementById('stair_waist').value = '0.15';
+  document.getElementById('stair_output').style.display = 'none';
+  updateStairVisual();
+}
+
+/* THEME */
+function toggleTheme() {
+  document.body.classList.toggle('light-mode');
+  const btn = document.getElementById('themeBtn');
+  btn.textContent = document.body.classList.contains('light-mode') ? '🌙' : '☀️';
+  localStorage.setItem('civilcalc_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  if (localStorage.getItem('civilcalc_theme') === 'light') {
+    document.body.classList.add('light-mode');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }
+  document.getElementById('stair_grade').addEventListener('change', function() {
+    document.getElementById('stair_custom_grade_row').style.display =
+      this.value === 'custom' ? 'block' : 'none';
+  });
+  updateStairVisual();
+});
+</script>
+</body>
+</html>

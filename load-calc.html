@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CivilCalci — Load Calculator</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<style>
+/* ===== LOAD CALC SPECIFIC ===== */
+.load-tab-bar { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0; }
+.load-tab {
+  padding:7px 14px; border-radius:8px; border:1.5px solid #d1d9e6;
+  font-size:12px; font-weight:700; cursor:pointer; background:#f8fafd;
+  color:#374151; transition:all .15s; white-space:nowrap;
+}
+.load-tab.active { background:#0b7dda; color:#fff; border-color:#0b7dda; }
+.load-tab:hover:not(.active) { border-color:#0b7dda; color:#0b7dda; }
+
+.load-panel { display:none; }
+.load-panel.active { display:block; }
+
+.load-input-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+.load-input-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:10px; }
+
+.load-field { display:flex; flex-direction:column; gap:4px; }
+.load-field label { font-size:12px; font-weight:700; color:#374151; }
+.load-field input, .load-field select {
+  padding:8px 10px; border-radius:7px; border:1px solid #e5e7eb;
+  font-size:13px; width:100%; box-sizing:border-box; background:#fff; color:#111;
+}
+.load-field input:focus, .load-field select:focus { outline:2px solid #0b7dda; }
+
+.load-result-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:10px; }
+.load-result-table th {
+  background:#f0f4fa; padding:8px 6px; text-align:left;
+  font-size:11px; border-bottom:2px solid #e9eef6; white-space:nowrap;
+}
+.load-result-table td {
+  padding:7px 6px; border-bottom:1px solid #e9eef6; vertical-align:middle;
+}
+.load-result-table tr:hover td { background:#f7faff; }
+.load-result-table .highlight { background:#e8f4ff !important; font-weight:800; color:#0b7dda; }
+
+.diag-canvas-wrap {
+  background:#0d1117; border-radius:10px; padding:8px;
+  margin:12px 0; overflow:hidden;
+}
+.diag-canvas-wrap canvas { display:block; width:100%; }
+
+.load-summary-box {
+  display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:12px;
+}
+.lsb-item {
+  background:#f0f7ff; border:1px solid #bfdbfe; border-radius:8px;
+  padding:10px; text-align:center;
+}
+.lsb-item .lsv { font-size:18px; font-weight:800; color:#0b7dda; }
+.lsb-item .lsl { font-size:10px; color:#6b7280; margin-top:2px; }
+
+.factored-box {
+  background:linear-gradient(135deg,#fff7ed,#ffedd5);
+  border:2px solid #fdba74; border-radius:10px; padding:12px;
+  margin-top:10px;
+}
+.factored-box .fbt { font-size:13px; font-weight:800; color:#9a3412; margin-bottom:8px; }
+.factored-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+.fg-item { background:#fff; border:1px solid #fed7aa; border-radius:7px; padding:8px; text-align:center; }
+.fg-item .fgv { font-size:15px; font-weight:800; color:#ea580c; }
+.fg-item .fgl { font-size:10px; color:#9ca3af; }
+
+.is-ref-chip {
+  display:inline-flex; align-items:center; gap:4px;
+  background:#eef2ff; color:#1e3a8a; border-radius:6px;
+  padding:3px 8px; font-size:10px; font-weight:700; margin:2px;
+}
+
+.combination-table { font-size:11px; }
+.combination-table td { padding:5px 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CivilCalci — Advanced Estimator</h1>
+  <p>Volume &amp; material calculators &bull; steel &amp; BBS generator &bull; cost estimation &bull; PDF report</p>
+</header>
+
+<div class="topnav">
+  <a class="tab-btn" href="index.html">Calculators</a>
+  <a class="tab-btn" href="steel-bbs.html">Steel &amp; BBS</a>
+  <a class="tab-btn" href="mix-design.html">Mix Design</a>
+  <a class="tab-btn" href="unit-converter.html">Unit Converter</a>
+  <a class="tab-btn" href="cost-estimate.html">Cost &amp; Estimate</a>
+  <a class="tab-btn" href="staircase.html">Staircase</a>
+  <a class="tab-btn" href="load-calc.html">Load Calc</a>
+  <a class="tab-btn" href="is-codes.html">IS Codes</a>
+</div>
+
+<div class="content">
+  <div class="panel">
+
+    <div class="card">
+      <h3>⚖️ Load Calculator</h3>
+      <div class="small muted">Dead load + Live load per IS 875. Calculates factored loads, BMD, SFD, and reactions.</div>
+
+      <!-- Tab Bar -->
+      <div class="load-tab-bar">
+        <div class="load-tab active" onclick="switchLoadTab('beam')"   id="lt_beam">🔶 Beam Load</div>
+        <div class="load-tab"        onclick="switchLoadTab('slab')"   id="lt_slab">🔷 Slab Load</div>
+        <div class="load-tab"        onclick="switchLoadTab('column')" id="lt_column">🟦 Column Load</div>
+        <div class="load-tab"        onclick="switchLoadTab('wall')"   id="lt_wall">🧱 Wall Load</div>
+        <div class="load-tab"        onclick="switchLoadTab('wind')"   id="lt_wind">💨 Wind Load</div>
+        <div class="load-tab"        onclick="switchLoadTab('seismic')" id="lt_seismic">🌍 Seismic</div>
+      </div>
+
+      <!-- ========================= BEAM LOAD ========================= -->
+      <div class="load-panel active" id="lp_beam">
+        <div class="load-section">
+          <div class="load-section-title">Beam Geometry &amp; Support</div>
+          <div class="load-input-grid">
+            <div class="load-field">
+              <label>Span / Length (m)</label>
+              <select id="bl_span_sel" onchange="loadSelChange('bl_span')">
+                <option value="3">3 m</option><option value="4">4 m</option>
+                <option value="5" selected>5 m</option><option value="6">6 m</option>
+                <option value="7">7 m</option><option value="8">8 m</option>
+                <option value="10">10 m</option><option value="custom">Custom</option>
+              </select>
+              <input id="bl_span" type="number" value="5" step="0.1" min="0.5" oninput="updateBeamDiagram()">
+            </div>
+            <div class="load-field">
+              <label>Support Condition</label>
+              <select id="bl_support" onchange="updateBeamDiagram()">
+                <option value="ss">Simply Supported</option>
+                <option value="fixed">Fixed Both Ends</option>
+                <option value="cantilever">Cantilever</option>
+                <option value="propped">Propped Cantilever</option>
+                <option value="continuous">Continuous (2-span)</option>
+              </select>
+            </div>
+            <div class="load-field">
+              <label>Beam Width b (m)</label>
+              <select id="bl_b_sel" onchange="loadSelChange('bl_b')">
+                <option value="0.23">0.23 m (9")</option>
+                <option value="0.25">0.25 m</option>
+                <option value="0.30" selected>0.30 m</option>
+                <option value="0.35">0.35 m</option>
+                <option value="0.40">0.40 m</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="bl_b" type="number" value="0.30" step="0.01" min="0.1" oninput="updateBeamDiagram()">
+            </div>
+            <div class="load-field">
+              <label>Beam Depth D (m)</label>
+              <select id="bl_d_sel" onchange="loadSelChange('bl_d')">
+                <option value="0.35">0.35 m</option>
+                <option value="0.40">0.40 m</option>
+                <option value="0.45" selected>0.45 m</option>
+                <option value="0.50">0.50 m</option>
+                <option value="0.60">0.60 m</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="bl_d" type="number" value="0.45" step="0.01" min="0.1" oninput="updateBeamDiagram()">
+            </div>
+          </div>
+        </div>
+
+        <div class="load-section">
+          <div class="load-section-title">Loads (IS 875)</div>
+          <div class="load-input-grid">
+            <div class="load-field">
+              <label>Dead Load – DL (kN/m)</label>
+              <select id="bl_dl_sel" onchange="loadSelChange('bl_dl')">
+                <option value="5">5 kN/m (light)</option>
+                <option value="10">10 kN/m</option>
+                <option value="15" selected>15 kN/m</option>
+                <option value="20">20 kN/m</option>
+                <option value="25">25 kN/m</option>
+                <option value="30">30 kN/m</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="bl_dl" type="number" value="15" step="0.5" min="0" oninput="updateBeamDiagram()">
+            </div>
+            <div class="load-field">
+              <label>Live Load – LL (kN/m) <span class="is-ref-chip">IS 875 Pt2</span></label>
+              <select id="bl_ll_sel" onchange="loadSelChange('bl_ll')">
+                <option value="2">2 kN/m (residential)</option>
+                <option value="3">3 kN/m</option>
+                <option value="4">4 kN/m</option>
+                <option value="5" selected>5 kN/m (office)</option>
+                <option value="7.5">7.5 kN/m (assembly)</option>
+                <option value="10">10 kN/m (storage)</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="bl_ll" type="number" value="5" step="0.5" min="0" oninput="updateBeamDiagram()">
+            </div>
+            <div class="load-field">
+              <label>Point Load P (kN) — mid-span</label>
+              <select id="bl_pl_sel" onchange="loadSelChange('bl_pl')">
+                <option value="0" selected>0 (None)</option>
+                <option value="10">10 kN</option>
+                <option value="20">20 kN</option>
+                <option value="50">50 kN</option>
+                <option value="100">100 kN</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="bl_pl" type="number" value="0" step="1" min="0" oninput="updateBeamDiagram()">
+            </div>
+            <div class="load-field">
+              <label>Load Factor (IS 456 Cl.18)</label>
+              <select id="bl_lf">
+                <option value="1.5" selected>1.5 (DL+LL)</option>
+                <option value="1.2">1.2 (DL+LL+Wind)</option>
+                <option value="0.9">0.9 (DL only, uplift)</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Diagram Canvas -->
+        <div class="diag-canvas-wrap">
+          <canvas id="beam_load_canvas" width="620" height="260" style="width:100%;height:260px;"></canvas>
+        </div>
+
+        <button class="btn" onclick="calcBeamLoad()">✅ Calculate Beam Loads</button>
+        <div id="beam_load_output" style="display:none;margin-top:12px;"></div>
+      </div>
+
+      <!-- ========================= SLAB LOAD ========================= -->
+      <div class="load-panel" id="lp_slab">
+        <div class="load-section">
+          <div class="load-section-title">Slab Details</div>
+          <div class="load-input-grid">
+            <div class="load-field">
+              <label>Slab Type</label>
+              <select id="sl_type" onchange="updateSlabDiagram()">
+                <option value="one_way">One-Way Slab</option>
+                <option value="two_way" selected>Two-Way Slab</option>
+                <option value="flat">Flat Slab</option>
+                <option value="ribbed">Ribbed Slab</option>
+              </select>
+            </div>
+            <div class="load-field">
+              <label>Short Span Lx (m)</label>
+              <select id="sl_lx_sel" onchange="loadSelChange('sl_lx')">
+                <option value="3">3 m</option><option value="3.5">3.5 m</option>
+                <option value="4" selected>4 m</option><option value="4.5">4.5 m</option>
+                <option value="5">5 m</option><option value="6">6 m</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="sl_lx" type="number" value="4" step="0.1" min="0.5" oninput="updateSlabDiagram()">
+            </div>
+            <div class="load-field">
+              <label>Long Span Ly (m)</label>
+              <select id="sl_ly_sel" onchange="loadSelChange('sl_ly')">
+                <option value="4">4 m</option><option value="4.5">4.5 m</option>
+                <option value="5" selected>5 m</option><option value="5.5">5.5 m</option>
+                <option value="6">6 m</option><option value="7">7 m</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="sl_ly" type="number" value="5" step="0.1" min="0.5" oninput="updateSlabDiagram()">
+            </div>
+            <div class="load-field">
+              <label>Slab Thickness (m)</label>
+              <select id="sl_t_sel" onchange="loadSelChange('sl_t')">
+                <option value="0.10">0.10 m</option><option value="0.12">0.12 m</option>
+                <option value="0.15" selected>0.15 m</option><option value="0.18">0.18 m</option>
+                <option value="0.20">0.20 m</option><option value="custom">Custom</option>
+              </select>
+              <input id="sl_t" type="number" value="0.15" step="0.01" min="0.05" oninput="updateSlabDiagram()">
+            </div>
+          </div>
+        </div>
+
+        <div class="load-section">
+          <div class="load-section-title">Slab Loads (IS 875)</div>
+          <div class="load-input-grid">
+            <div class="load-field">
+              <label>Floor Finish (kN/m²)</label>
+              <select id="sl_ff_sel" onchange="loadSelChange('sl_ff')">
+                <option value="0.5">0.5 (tiles)</option>
+                <option value="1.0" selected>1.0 (marble/granite)</option>
+                <option value="1.5">1.5 (heavy finish)</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="sl_ff" type="number" value="1.0" step="0.1" min="0" oninput="updateSlabDiagram()">
+            </div>
+            <div class="load-field">
+              <label>Live Load (kN/m²) <span class="is-ref-chip">IS 875-2</span></label>
+              <select id="sl_ll_sel" onchange="loadSelChange('sl_ll')">
+                <option value="1.5">1.5 (accessible roof)</option>
+                <option value="2.0" selected>2.0 (residential)</option>
+                <option value="3.0">3.0 (office)</option>
+                <option value="4.0">4.0 (assembly)</option>
+                <option value="5.0">5.0 (storage)</option>
+                <option value="7.5">7.5 (heavy storage)</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="sl_ll" type="number" value="2.0" step="0.5" min="0" oninput="updateSlabDiagram()">
+            </div>
+            <div class="load-field">
+              <label>Wall Load on Slab (kN/m²)</label>
+              <select id="sl_wl_sel" onchange="loadSelChange('sl_wl')">
+                <option value="0">0 (none)</option>
+                <option value="1">1 kN/m²</option>
+                <option value="2" selected>2 kN/m²</option>
+                <option value="3">3 kN/m²</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="sl_wl" type="number" value="2" step="0.5" min="0">
+            </div>
+            <div class="load-field">
+              <label>Waterproofing (kN/m²)</label>
+              <select id="sl_wp_sel" onchange="loadSelChange('sl_wp')">
+                <option value="0" selected>0 (floor slab)</option>
+                <option value="1.5">1.5 (terrace)</option>
+                <option value="2.0">2.0 (heavy WP)</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="sl_wp" type="number" value="0" step="0.5" min="0">
+            </div>
+          </div>
+        </div>
+
+        <div class="diag-canvas-wrap">
+          <canvas id="slab_load_canvas" width="620" height="220" style="width:100%;height:220px;"></canvas>
+        </div>
+
+        <button class="btn" onclick="calcSlabLoad()">✅ Calculate Slab Loads</button>
+        <div id="slab_load_output" style="display:none;margin-top:12px;"></div>
+      </div>
+
+      <!-- ========================= COLUMN LOAD ========================= -->
+      <div class="load-panel" id="lp_column">
+        <div class="load-section">
+          <div class="load-section-title">Column &amp; Tributary Area</div>
+          <div class="load-input-grid">
+            <div class="load-field">
+              <label>No. of Floors</label>
+              <select id="cl_floors_sel" onchange="loadSelChange('cl_floors')">
+                <option value="1">G (1 floor)</option>
+                <option value="2">G+1 (2 floors)</option>
+                <option value="3" selected>G+2 (3 floors)</option>
+                <option value="4">G+3 (4 floors)</option>
+                <option value="5">G+4 (5 floors)</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="cl_floors" type="number" value="3" step="1" min="1">
+            </div>
+            <div class="load-field">
+              <label>Floor Height (m)</label>
+              <select id="cl_fh_sel" onchange="loadSelChange('cl_fh')">
+                <option value="2.8">2.8 m</option>
+                <option value="3.0" selected>3.0 m</option>
+                <option value="3.2">3.2 m</option>
+                <option value="3.5">3.5 m</option>
+                <option value="4.0">4.0 m</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="cl_fh" type="number" value="3.0" step="0.1" min="2">
+            </div>
+            <div class="load-field">
+              <label>Tributary Width X (m)</label>
+              <select id="cl_tx_sel" onchange="loadSelChange('cl_tx')">
+                <option value="3">3 m</option><option value="3.5">3.5 m</option>
+                <option value="4" selected>4 m</option><option value="4.5">4.5 m</option>
+                <option value="5">5 m</option><option value="custom">Custom</option>
+              </select>
+              <input id="cl_tx" type="number" value="4" step="0.1" min="0.5">
+            </div>
+            <div class="load-field">
+              <label>Tributary Width Y (m)</label>
+              <select id="cl_ty_sel" onchange="loadSelChange('cl_ty')">
+                <option value="3">3 m</option><option value="3.5">3.5 m</option>
+                <option value="4" selected>4 m</option><option value="4.5">4.5 m</option>
+                <option value="5">5 m</option><option value="custom">Custom</option>
+              </select>
+              <input id="cl_ty" type="number" value="4" step="0.1" min="0.5">
+            </div>
+          </div>
+        </div>
+
+        <div class="load-section">
+          <div class="load-section-title">Floor Loads (kN/m²)</div>
+          <div class="load-input-grid">
+            <div class="load-field">
+              <label>Floor DL (kN/m²)</label>
+              <select id="cl_dl_sel" onchange="loadSelChange('cl_dl')">
+                <option value="3">3 (light)</option>
+                <option value="4">4</option>
+                <option value="5" selected>5 (standard)</option>
+                <option value="6">6 (heavy)</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="cl_dl" type="number" value="5" step="0.5" min="0">
+            </div>
+            <div class="load-field">
+              <label>Floor LL (kN/m²) <span class="is-ref-chip">IS 875-2</span></label>
+              <select id="cl_ll_sel" onchange="loadSelChange('cl_ll')">
+                <option value="2.0" selected>2.0 (residential)</option>
+                <option value="3.0">3.0 (office)</option>
+                <option value="4.0">4.0 (assembly)</option>
+                <option value="5.0">5.0 (storage)</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="cl_ll" type="number" value="2.0" step="0.5" min="0">
+            </div>
+            <div class="load-field">
+              <label>Self-wt of Column (kN/m)</label>
+              <select id="cl_sw_sel" onchange="loadSelChange('cl_sw')">
+                <option value="2">2 kN/m</option>
+                <option value="3" selected>3 kN/m</option>
+                <option value="4">4 kN/m</option>
+                <option value="5">5 kN/m</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="cl_sw" type="number" value="3" step="0.5" min="0">
+            </div>
+            <div class="load-field">
+              <label>Beam/Wall Load per Floor (kN)</label>
+              <select id="cl_bw_sel" onchange="loadSelChange('cl_bw')">
+                <option value="10">10 kN</option>
+                <option value="20">20 kN</option>
+                <option value="30" selected>30 kN</option>
+                <option value="40">40 kN</option>
+                <option value="50">50 kN</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="cl_bw" type="number" value="30" step="5" min="0">
+            </div>
+          </div>
+        </div>
+
+        <button class="btn" onclick="calcColumnLoad()">✅ Calculate Column Load</button>
+        <div id="column_load_output" style="display:none;margin-top:12px;"></div>
+      </div>
+
+      <!-- ========================= WALL LOAD ========================= -->
+      <div class="load-panel" id="lp_wall">
+        <div class="load-section">
+          <div class="load-section-title">Wall Details</div>
+          <div class="load-input-grid">
+            <div class="load-field">
+              <label>Wall Type</label>
+              <select id="wl_type">
+                <option value="brick">Brick Masonry (19 kN/m³)</option>
+                <option value="aac" selected>AAC Block (7 kN/m³)</option>
+                <option value="ccb">Concrete Block (20 kN/m³)</option>
+                <option value="stone">Stone Masonry (26 kN/m³)</option>
+                <option value="custom">Custom Density</option>
+              </select>
+            </div>
+            <div class="load-field">
+              <label>Wall Thickness (m)</label>
+              <select id="wl_t_sel" onchange="loadSelChange('wl_t')">
+                <option value="0.115">0.115 m (4.5")</option>
+                <option value="0.230" selected>0.230 m (9")</option>
+                <option value="0.345">0.345 m (13.5")</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="wl_t" type="number" value="0.230" step="0.01" min="0.05">
+            </div>
+            <div class="load-field">
+              <label>Wall Height (m)</label>
+              <select id="wl_h_sel" onchange="loadSelChange('wl_h')">
+                <option value="2.5">2.5 m</option>
+                <option value="2.8">2.8 m</option>
+                <option value="3.0" selected>3.0 m</option>
+                <option value="3.2">3.2 m</option>
+                <option value="3.5">3.5 m</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="wl_h" type="number" value="3.0" step="0.1" min="0.5">
+            </div>
+            <div class="load-field">
+              <label>Wall Length (m)</label>
+              <select id="wl_l_sel" onchange="loadSelChange('wl_l')">
+                <option value="3">3 m</option><option value="4">4 m</option>
+                <option value="5" selected>5 m</option><option value="6">6 m</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="wl_l" type="number" value="5" step="0.1" min="0.1">
+            </div>
+            <div class="load-field" id="wl_custom_den_row" style="display:none;">
+              <label>Custom Density (kN/m³)</label>
+              <input id="wl_den" type="number" value="19" step="0.5" min="1">
+            </div>
+            <div class="load-field">
+              <label>Deduct Openings (%)</label>
+              <select id="wl_op_sel" onchange="loadSelChange('wl_op')">
+                <option value="0">0% (no openings)</option>
+                <option value="10">10%</option>
+                <option value="15" selected>15%</option>
+                <option value="20">20%</option>
+                <option value="30">30%</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="wl_op" type="number" value="15" step="1" min="0" max="80">
+            </div>
+            <div class="load-field">
+              <label>Plaster (kN/m²) both sides</label>
+              <select id="wl_pl_sel" onchange="loadSelChange('wl_pl')">
+                <option value="0">0 (no plaster)</option>
+                <option value="0.4" selected>0.4 (12mm both sides)</option>
+                <option value="0.6">0.6 (20mm)</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="wl_pl" type="number" value="0.4" step="0.1" min="0">
+            </div>
+          </div>
+        </div>
+
+        <button class="btn" onclick="calcWallLoad()">✅ Calculate Wall Load</button>
+        <div id="wall_load_output" style="display:none;margin-top:12px;"></div>
+      </div>
+
+      <!-- ========================= WIND LOAD ========================= -->
+      <div class="load-panel" id="lp_wind">
+        <div class="load-section">
+          <div class="load-section-title">Wind Load (IS 875 Part 3)</div>
+          <div class="load-input-grid">
+            <div class="load-field">
+              <label>Basic Wind Speed Vb (m/s) <span class="is-ref-chip">IS 875-3</span></label>
+              <select id="wnd_vb_sel" onchange="loadSelChange('wnd_vb')">
+                <option value="33">33 m/s — Zone I (hills)</option>
+                <option value="39">39 m/s — Zone II</option>
+                <option value="44">44 m/s — Zone III</option>
+                <option value="47" selected>47 m/s — Zone IV (coastal)</option>
+                <option value="50">50 m/s — Zone V (severe)</option>
+                <option value="55">55 m/s — Zone VI</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="wnd_vb" type="number" value="47" step="1" min="20" max="75">
+            </div>
+            <div class="load-field">
+              <label>Risk Factor k1</label>
+              <select id="wnd_k1" onchange="updateWindDiagram()">
+                <option value="0.92">0.92 (50yr, temp struct)</option>
+                <option value="1.0" selected>1.00 (50yr, general)</option>
+                <option value="1.05">1.05 (100yr)</option>
+                <option value="1.08">1.08 (cyclone prone)</option>
+              </select>
+            </div>
+            <div class="load-field">
+              <label>Terrain Category k2</label>
+              <select id="wnd_terrain" onchange="updateWindDiagram()">
+                <option value="1">Category 1 (Open sea/flat)</option>
+                <option value="2" selected>Category 2 (Open terrain, obstacles)</option>
+                <option value="3">Category 3 (Suburban/industrial)</option>
+                <option value="4">Category 4 (City centre)</option>
+              </select>
+            </div>
+            <div class="load-field">
+              <label>Topography Factor k3</label>
+              <select id="wnd_k3" onchange="updateWindDiagram()">
+                <option value="1.0" selected>1.0 (flat)</option>
+                <option value="1.1">1.1 (gentle slope)</option>
+                <option value="1.2">1.2 (steep slope)</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="load-field">
+              <label>Building Height H (m)</label>
+              <select id="wnd_h_sel" onchange="loadSelChange('wnd_h')">
+                <option value="5">5 m</option><option value="10" selected>10 m</option>
+                <option value="15">15 m</option><option value="20">20 m</option>
+                <option value="30">30 m</option><option value="50">50 m</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="wnd_h" type="number" value="10" step="1" min="1" oninput="updateWindDiagram()">
+            </div>
+            <div class="load-field">
+              <label>Building Width B (m)</label>
+              <select id="wnd_b_sel" onchange="loadSelChange('wnd_b')">
+                <option value="5">5 m</option><option value="8">8 m</option>
+                <option value="10" selected>10 m</option><option value="12">12 m</option>
+                <option value="15">15 m</option><option value="20">20 m</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="wnd_b" type="number" value="10" step="1" min="1" oninput="updateWindDiagram()">
+            </div>
+            <div class="load-field">
+              <label>Cpe (ext pressure coeff)</label>
+              <select id="wnd_cpe">
+                <option value="0.7" selected>0.7 (windward wall)</option>
+                <option value="-0.5">-0.5 (leeward wall)</option>
+                <option value="-0.8">-0.8 (roof)</option>
+                <option value="1.0">1.0 (curved roof)</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="load-field">
+              <label>Cpi (int pressure coeff)</label>
+              <select id="wnd_cpi">
+                <option value="-0.5">-0.5 (dominant opening on leeward)</option>
+                <option value="0.2">+0.2 (many openings)</option>
+                <option value="-0.2" selected>-0.2 (many openings)</option>
+                <option value="0.5">+0.5 (dominant opening on windward)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="diag-canvas-wrap">
+          <canvas id="wind_canvas" width="620" height="220" style="width:100%;height:220px;"></canvas>
+        </div>
+
+        <button class="btn" onclick="calcWindLoad()">✅ Calculate Wind Load</button>
+        <div id="wind_load_output" style="display:none;margin-top:12px;"></div>
+      </div>
+
+      <!-- ========================= SEISMIC ========================= -->
+      <div class="load-panel" id="lp_seismic">
+        <div class="load-section">
+          <div class="load-section-title">Seismic Load (IS 1893 : 2016)</div>
+          <div class="load-input-grid">
+            <div class="load-field">
+              <label>Seismic Zone <span class="is-ref-chip">IS 1893</span></label>
+              <select id="eq_zone" onchange="updateSeismicZ()">
+                <option value="2">Zone II — Z=0.10 (Low)</option>
+                <option value="3" selected>Zone III — Z=0.16 (Moderate)</option>
+                <option value="4">Zone IV — Z=0.24 (High)</option>
+                <option value="5">Zone V — Z=0.36 (Very High)</option>
+              </select>
+            </div>
+            <div class="load-field">
+              <label>Zone Factor Z</label>
+              <input id="eq_z" type="number" value="0.16" step="0.01" min="0.01" max="0.50">
+            </div>
+            <div class="load-field">
+              <label>Importance Factor I</label>
+              <select id="eq_i">
+                <option value="1.0" selected>1.0 (residential/office)</option>
+                <option value="1.2">1.2 (assembly halls)</option>
+                <option value="1.5">1.5 (hospitals, schools)</option>
+                <option value="2.0">2.0 (critical facilities)</option>
+              </select>
+            </div>
+            <div class="load-field">
+              <label>Response Reduction R</label>
+              <select id="eq_r">
+                <option value="1.5">1.5 (unreinforced masonry)</option>
+                <option value="2.5">2.5 (ordinary RC frame)</option>
+                <option value="3.0">3.0 (special RC frame)</option>
+                <option value="4.0">4.0 (RC shear wall)</option>
+                <option value="5.0" selected>5.0 (ductile RC frame)</option>
+              </select>
+            </div>
+            <div class="load-field">
+              <label>Soil Type (Sa/g)</label>
+              <select id="eq_soil">
+                <option value="I">Type I — Hard Rock</option>
+                <option value="II" selected>Type II — Medium Soil</option>
+                <option value="III">Type III — Soft Soil</option>
+              </select>
+            </div>
+            <div class="load-field">
+              <label>Time Period T (s)</label>
+              <select id="eq_tp_sel" onchange="loadSelChange('eq_tp')">
+                <option value="auto" selected>Auto (0.075 h^0.75)</option>
+                <option value="0.1">0.1 s</option>
+                <option value="0.2">0.2 s</option>
+                <option value="0.5">0.5 s</option>
+                <option value="1.0">1.0 s</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="eq_tp" type="number" value="" step="0.01" min="0.01" placeholder="auto">
+            </div>
+            <div class="load-field">
+              <label>Total Seismic Weight W (kN)</label>
+              <select id="eq_w_sel" onchange="loadSelChange('eq_w')">
+                <option value="500">500 kN</option>
+                <option value="1000" selected>1000 kN</option>
+                <option value="2000">2000 kN</option>
+                <option value="5000">5000 kN</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="eq_w" type="number" value="1000" step="50" min="10">
+            </div>
+            <div class="load-field">
+              <label>Building Height H (m)</label>
+              <select id="eq_h_sel" onchange="loadSelChange('eq_h')">
+                <option value="9">9 m (G+2)</option>
+                <option value="12" selected>12 m (G+3)</option>
+                <option value="15">15 m (G+4)</option>
+                <option value="20">20 m</option>
+                <option value="30">30 m</option>
+                <option value="custom">Custom</option>
+              </select>
+              <input id="eq_h" type="number" value="12" step="1" min="3">
+            </div>
+          </div>
+        </div>
+
+        <button class="btn" onclick="calcSeismicLoad()">✅ Calculate Seismic Load</button>
+        <div id="seismic_output" style="display:none;margin-top:12px;"></div>
+      </div>
+
+    </div><!-- end card -->
+
+    <!-- IS Code Reference -->
+    <div class="card">
+      <h3>Load Reference (IS 875)</h3>
+      <div class="small muted">Common live loads per IS 875 Part 2.</div>
+      <div style="overflow-x:auto;margin-top:10px;">
+        <table style="font-size:12px;min-width:360px;">
+          <thead><tr><th>Occupancy / Use</th><th>LL (kN/m²)</th></tr></thead>
+          <tbody>
+            <tr><td>Residential rooms, bedrooms</td><td>2.0</td></tr>
+            <tr><td>Kitchens, bathrooms</td><td>2.0</td></tr>
+            <tr><td>Staircases, corridors</td><td>3.0–5.0</td></tr>
+            <tr><td>Office floors</td><td>2.5–3.0</td></tr>
+            <tr><td>Assembly halls, auditoria</td><td>4.0–5.0</td></tr>
+            <tr><td>Garages (light vehicles)</td><td>4.0</td></tr>
+            <tr><td>Warehouses, storage</td><td>5.0–7.5</td></tr>
+            <tr><td>Accessible roofs (terrace)</td><td>1.5</td></tr>
+            <tr><td>Inaccessible roofs</td><td>0.75</td></tr>
+            <tr><td>Hospital wards</td><td>2.0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="md-info" style="margin-top:10px;">
+        <strong>Load Combinations (IS 456 Cl.18.2):</strong><br>
+        1.5(DL+LL) | 1.2(DL+LL+WL) | 1.5(DL+WL) | 0.9DL + 1.5WL
+      </div>
+    </div>
+
+  </div><!-- end panel -->
+
+  <!-- RIGHT: Estimate Summary -->
+  <aside class="summary">
+    <div class="card">
+      <h4>Estimate Summary</h4>
+      <div class="small muted">Enter local rates and add items from calculators.</div>
+      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label>Cement (₹/50kg bag)</label><input id="rate_cement" type="number" step="0.01" placeholder="e.g. 420" oninput="syncRateInputs('cement',this.value)"></div>
+        <div><label>Sand (₹/m³)</label><input id="rate_sand" type="number" step="0.01" placeholder="e.g. 1600" oninput="syncRateInputs('sand',this.value)"></div>
+        <div><label>Aggregate (₹/m³)</label><input id="rate_agg" type="number" step="0.01" placeholder="e.g. 2000" oninput="syncRateInputs('agg',this.value)"></div>
+        <div><label>Steel (₹/kg)</label><input id="rate_steel" type="number" step="0.01" placeholder="e.g. 70" oninput="syncRateInputs('steel',this.value)"></div>
+      </div>
+      <button class="btn" style="margin-top:10px;" onclick="recomputeEstimate()">Recompute Estimate</button>
+      <div class="estimate-table-wrap">
+        <table id="estimate_table">
+          <thead>
+            <tr><th>#</th><th>Item</th><th>Vol</th><th>Cement</th><th>Sand</th><th>Agg</th><th>Steel</th><th>Grade</th><th>Cost</th><th>Notes</th><th>Del</th></tr>
+          </thead>
+          <tbody id="estimate_tbody"></tbody>
+        </table>
+      </div>
+      <div class="total-line">
+        <div>Total Project Cost</div>
+        <div id="estimate_total">₹ 0</div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" style="flex:1;" onclick="exportPDF()">📄 Export PDF</button>
+        <button class="btn btn-orange" style="flex:1;" onclick="printReport()">🖨 Print</button>
+        <button class="btn btn-red" style="flex:1;" onclick="clearEstimate()">🗑 Clear All</button>
+      </div>
+    </div>
+    <div class="card">
+      <h4>IS Codes — Loads</h4>
+      <ul class="is-list">
+        <li><strong>IS 875 Pt1</strong> : Dead Loads — Unit Weights</li>
+        <li><strong>IS 875 Pt2</strong> : Imposed/Live Loads</li>
+        <li><strong>IS 875 Pt3</strong> : Wind Loads</li>
+        <li><strong>IS 875 Pt5</strong> : Special Loads</li>
+        <li><strong>IS 1893</strong> : Earthquake Loads</li>
+        <li><strong>IS 456 Cl.18</strong> : Load Combinations</li>
+      </ul>
+    </div>
+  </aside>
+
+</div><!-- .content -->
+
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+
+<script src="script.js"></script>
+<script src="visuals.js"></script>
+<script>
+/* ===== TAB SWITCHING ===== */
+function switchLoadTab(tab) {
+  document.querySelectorAll('.load-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.load-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('lt_' + tab).classList.add('active');
+  document.getElementById('lp_' + tab).classList.add('active');
+  if (tab === 'beam')   { setTimeout(updateBeamDiagram, 50); }
+  if (tab === 'slab')   { setTimeout(updateSlabDiagram, 50); }
+  if (tab === 'wind')   { setTimeout(updateWindDiagram, 50); }
+}
+
+/* ===== SELECT HELPER ===== */
+function loadSelChange(field) {
+  const selId = field + '_sel';
+  const inpId = field;
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  if (sel.value !== 'custom' && sel.value !== 'auto') {
+    const inp = document.getElementById(inpId);
+    if (inp) inp.value = sel.value;
+  }
+  // Special: wall type density
+  if (field === 'wl_t' || selId === 'wl_type') {
+    const wlType = document.getElementById('wl_type')?.value;
+    document.getElementById('wl_custom_den_row').style.display = wlType === 'custom' ? 'block' : 'none';
+  }
+  updateBeamDiagram();
+}
+
+/* ===== SEISMIC ZONE UPDATE ===== */
+function updateSeismicZ() {
+  const zone = document.getElementById('eq_zone').value;
+  const zMap = {'2':0.10,'3':0.16,'4':0.24,'5':0.36};
+  document.getElementById('eq_z').value = zMap[zone] || 0.16;
+}
+
+const sn = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+
+/* ===== BEAM LOAD DIAGRAM ===== */
+function updateBeamDiagram() {
+  const span = sn(document.getElementById('bl_span')?.value) || 5;
+  const dl   = sn(document.getElementById('bl_dl')?.value)   || 15;
+  const ll   = sn(document.getElementById('bl_ll')?.value)   || 5;
+  const pl   = sn(document.getElementById('bl_pl')?.value)   || 0;
+  const supp = document.getElementById('bl_support')?.value  || 'ss';
+  const w    = dl + ll; // total UDL
+  drawBeamLoadDiagram('beam_load_canvas', span, w, pl, supp);
+}
+
+function drawBeamLoadDiagram(canvasId, L, w, P, supp) {
+  const cv = document.getElementById(canvasId);
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+
+  ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, W, H);
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5;
+  for (let x = 0; x < W; x += 30) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  const bx = 60, bw = W - 120, by = H * 0.38, bh = 12;
+
+  // ---- Beam ----
+  ctx.fillStyle = '#1e88e5';
+  ctx.fillRect(bx, by, bw, bh);
+  // 3D effect
+  ctx.fillStyle = '#1565c0';
+  ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx+8,by-6); ctx.lineTo(bx+bw+8,by-6); ctx.lineTo(bx+bw,by); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#42a5f5';
+  ctx.beginPath(); ctx.moveTo(bx+bw,by); ctx.lineTo(bx+bw+8,by-6); ctx.lineTo(bx+bw+8,by+bh-6); ctx.lineTo(bx+bw,by+bh); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#90caf9'; ctx.lineWidth = 0.8; ctx.strokeRect(bx,by,bw,bh);
+
+  // ---- Supports ----
+  function drawSupp(x, y, type) {
+    ctx.fillStyle = '#80cbc4'; ctx.strokeStyle='#4db6ac'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-12,y+16); ctx.lineTo(x+12,y+16); ctx.closePath(); ctx.fill(); ctx.stroke();
+    if(type==='roller') { ctx.beginPath(); ctx.arc(x,y+20,5,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
+    ctx.strokeStyle='#4db6ac'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(x-16,y+24); ctx.lineTo(x+16,y+24); ctx.stroke();
+  }
+
+  if (supp === 'cantilever') {
+    ctx.fillStyle='#1e88e5'; ctx.fillRect(bx-16,by-20,16,bh+40);
+    ctx.strokeStyle='#90caf9'; ctx.lineWidth=1; ctx.strokeRect(bx-16,by-20,16,bh+40);
+  } else if (supp === 'fixed') {
+    ctx.fillStyle='#1e88e5'; ctx.fillRect(bx-16,by-20,16,bh+40); ctx.fillRect(bx+bw,by-20,16,bh+40);
+    ctx.strokeStyle='#90caf9'; ctx.lineWidth=1; ctx.strokeRect(bx-16,by-20,16,bh+40); ctx.strokeRect(bx+bw,by-20,16,bh+40);
+  } else {
+    drawSupp(bx, by+bh, 'pin');
+    drawSupp(bx+bw, by+bh, supp==='propped'?'pin':'roller');
+  }
+
+  // ---- UDL Arrows ----
+  const udlH = 44;
+  const arrowN = Math.floor(bw / 28);
+  ctx.fillStyle = 'rgba(255,152,0,0.15)'; ctx.fillRect(bx, by-udlH, bw, udlH);
+  ctx.strokeStyle='#ff9800'; ctx.lineWidth=1; ctx.strokeRect(bx,by-udlH,bw,udlH);
+  for (let i = 0; i < arrowN; i++) {
+    const ax = bx + (i + 0.5) * (bw / arrowN);
+    ctx.strokeStyle='#ff9800'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(ax,by-udlH+4); ctx.lineTo(ax,by-2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ax-5,by-10); ctx.lineTo(ax,by-2); ctx.lineTo(ax+5,by-10); ctx.strokeStyle='#ffa726'; ctx.stroke();
+  }
+  ctx.font='bold 11px monospace'; ctx.fillStyle='#ff9800';
+  ctx.fillText(`w = ${w.toFixed(1)} kN/m`, bx+bw/2-38, by-udlH-6);
+
+  // Point load
+  if (P > 0) {
+    const px = bx + bw/2;
+    ctx.strokeStyle='#f48fb1'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(px,by-udlH-30); ctx.lineTo(px,by-2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px-6,by-12); ctx.lineTo(px,by-2); ctx.lineTo(px+6,by-12); ctx.stroke();
+    ctx.font='bold 10px monospace'; ctx.fillStyle='#f48fb1';
+    ctx.fillText(`P=${P}kN`, px+6, by-udlH-18);
+  }
+
+  // ---- BMD ----
+  const bmdy = by + bh + 28;
+  let Mmax, Vmax, Ra, Rb;
+  if (supp === 'ss') {
+    Mmax = w*L*L/8 + P*L/4;
+    Ra = Rb = w*L/2 + P/2;
+    Vmax = Ra;
+  } else if (supp === 'fixed') {
+    Mmax = w*L*L/12 + P*L/8;
+    Ra = Rb = w*L/2 + P/2;
+    Vmax = Ra;
+  } else if (supp === 'cantilever') {
+    Mmax = w*L*L/2 + P*L;
+    Ra = w*L + P; Rb = 0;
+    Vmax = Ra;
+  } else {
+    Mmax = w*L*L/8 + P*L/4;
+    Ra = Rb = w*L/2 + P/2;
+    Vmax = Ra;
+  }
+  const bmScale = 40 / Math.max(Mmax, 1);
+  ctx.beginPath();
+  ctx.moveTo(bx, bmdy);
+  for (let i = 0; i <= 60; i++) {
+    const xi = bx + (i/60)*bw;
+    const x0 = (i/60)*L;
+    let m;
+    if (supp === 'cantilever') m = w*(L-x0)*(L-x0)/2 + P*(L-x0);
+    else m = Ra*x0 - w*x0*x0/2 + (x0>L/2?-P*(x0-L/2):0);
+    const yi = bmdy + m * bmScale;
+    i===0 ? ctx.moveTo(xi,yi) : ctx.lineTo(xi,yi);
+  }
+  ctx.lineTo(bx+bw, bmdy); ctx.closePath();
+  ctx.fillStyle='rgba(66,165,245,0.28)'; ctx.fill();
+  ctx.strokeStyle='#42a5f5'; ctx.lineWidth=1.8; ctx.stroke();
+
+  // SFD
+  const sfdy = bmdy + 52;
+  ctx.beginPath();
+  if (supp === 'cantilever') {
+    ctx.moveTo(bx, sfdy); ctx.lineTo(bx,sfdy-Vmax*bmScale*0.7);
+    ctx.lineTo(bx+bw,sfdy-0.1); ctx.lineTo(bx+bw,sfdy); ctx.closePath();
+  } else {
+    ctx.moveTo(bx,sfdy); ctx.lineTo(bx,sfdy-Vmax*bmScale*0.7);
+    ctx.lineTo(bx+bw/2,sfdy); ctx.lineTo(bx+bw,sfdy+Vmax*bmScale*0.7);
+    ctx.lineTo(bx+bw,sfdy); ctx.closePath();
+  }
+  ctx.fillStyle='rgba(76,175,80,0.25)'; ctx.fill();
+  ctx.strokeStyle='#4caf50'; ctx.lineWidth=1.8; ctx.stroke();
+
+  // Labels
+  ctx.font='bold 10px monospace'; ctx.fillStyle='#42a5f5';
+  ctx.fillText(`BMD  Mmax=${Mmax.toFixed(1)} kNm`, bx, bmdy+12);
+  ctx.fillStyle='#4caf50';
+  ctx.fillText(`SFD  Vmax=${Vmax.toFixed(1)} kN`, bx, sfdy+12);
+  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='9px monospace';
+  ctx.fillText(`Ra=${Ra.toFixed(1)} kN`, bx-2, by+bh+18);
+  if (Rb > 0) ctx.fillText(`Rb=${Rb.toFixed(1)} kN`, bx+bw-40, by+bh+18);
+  ctx.font='9px monospace'; ctx.fillStyle='rgba(255,255,255,0.4)';
+  ctx.fillText(`L = ${L} m`, bx+bw/2-15, by+bh+4);
+}
+
+/* ===== SLAB DIAGRAM ===== */
+function updateSlabDiagram() {
+  const lx = sn(document.getElementById('sl_lx')?.value) || 4;
+  const ly = sn(document.getElementById('sl_ly')?.value) || 5;
+  const t  = sn(document.getElementById('sl_t')?.value)  || 0.15;
+  const ll = sn(document.getElementById('sl_ll')?.value) || 2;
+  drawSlabDiagram('slab_load_canvas', lx, ly, t, ll);
+}
+
+function drawSlabDiagram(canvasId, lx, ly, t, ll) {
+  const cv = document.getElementById(canvasId); if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=0.5;
+  for(let x=0;x<W;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  const ratio = ly/lx;
+  const isTwoWay = ratio < 2;
+  const ox=80, oy=H*0.72, sc=Math.min((W-120)/ly, (H-60)/lx)*0.55;
+  function iso(x,y,z){
+    return { x: ox+(x-y)*sc*0.7, y: oy+(x+y)*sc*0.4-z*sc*1.2 };
+  }
+  // slab box
+  const corners=[
+    iso(0,0,0),iso(lx,0,0),iso(lx,ly,0),iso(0,ly,0),
+    iso(0,0,t),iso(lx,0,t),iso(lx,ly,t),iso(0,ly,t)
+  ];
+  const poly=(pts,fill)=>{
+    ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.closePath(); ctx.fillStyle=fill; ctx.fill();
+    ctx.strokeStyle='#90caf9'; ctx.lineWidth=0.8; ctx.stroke();
+  };
+  poly([corners[1],corners[2],corners[6],corners[5]],'#1565c0');
+  poly([corners[0],corners[1],corners[5],corners[4]],'#1e88e5');
+  poly([corners[4],corners[5],corners[6],corners[7]],'#42a5f5');
+  // load arrows on top
+  for(let i=0;i<=3;i++) for(let j=0;j<=3;j++){
+    const p=iso(lx*(i/3),ly*(j/3),t);
+    ctx.strokeStyle='#ff9800'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(p.x,p.y-20); ctx.lineTo(p.x,p.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p.x-4,p.y-8); ctx.lineTo(p.x,p.y); ctx.lineTo(p.x+4,p.y-8); ctx.stroke();
+  }
+  // span direction arrows
+  if(isTwoWay){
+    ctx.strokeStyle='#f48fb1'; ctx.lineWidth=2; ctx.setLineDash([4,3]);
+    const p1=iso(lx/2,0,t+0.05), p2=iso(lx/2,ly,t+0.05);
+    const q1=iso(0,ly/2,t+0.05), q2=iso(lx,ly/2,t+0.05);
+    ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(q1.x,q1.y); ctx.lineTo(q2.x,q2.y); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.font='bold 11px monospace'; ctx.fillStyle='#ff9800';
+  ctx.fillText(`LL=${ll} kN/m²  ${isTwoWay?'Two-Way':'One-Way'}`, 8, 16);
+  ctx.fillStyle='#90caf9'; ctx.font='9px monospace';
+  ctx.fillText(`Lx=${lx}m`, iso(lx/2,0,0).x-12, iso(lx/2,0,0).y+14);
+  ctx.fillText(`Ly=${ly}m`, iso(0,ly/2,0).x-32, iso(0,ly/2,0).y);
+  ctx.fillText(`t=${t}m`, iso(0,0,t/2).x-32, iso(0,0,t/2).y);
+}
+
+/* ===== WIND DIAGRAM ===== */
+function updateWindDiagram() {
+  const H = sn(document.getElementById('wnd_h')?.value) || 10;
+  const B = sn(document.getElementById('wnd_b')?.value) || 10;
+  drawWindDiagram('wind_canvas', H, B);
+}
+
+function drawWindDiagram(canvasId, bldH, bldB) {
+  const cv=document.getElementById(canvasId); if(!cv) return;
+  const ctx=cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=0.5;
+  for(let x=0;x<W;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  const ratio=bldH/bldB;
+  const bh=Math.min(H*0.7, H-40);
+  const bw=bh/ratio;
+  const bx=(W-bw)/2, by=H-50;
+
+  // Ground
+  ctx.fillStyle='rgba(255,255,255,0.08)';
+  ctx.fillRect(0,by,W,6);
+
+  // Building (isometric-style)
+  ctx.fillStyle='#1e88e5';
+  ctx.fillRect(bx,by-bh,bw,bh);
+  ctx.fillStyle='#1565c0';
+  ctx.beginPath(); ctx.moveTo(bx+bw,by-bh); ctx.lineTo(bx+bw+14,by-bh-8); ctx.lineTo(bx+bw+14,by-8); ctx.lineTo(bx+bw,by); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#90caf9';
+  ctx.beginPath(); ctx.moveTo(bx,by-bh); ctx.lineTo(bx+bw,by-bh); ctx.lineTo(bx+bw+14,by-bh-8); ctx.lineTo(bx+14,by-bh-8); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#42a5f5'; ctx.lineWidth=1; ctx.strokeRect(bx,by-bh,bw,bh);
+
+  // Windows
+  const winW=bw*0.18, winH=bh*0.1, winCols=3, winRows=4;
+  for(let r=0;r<winRows;r++) for(let c=0;c<winCols;c++){
+    const wx=bx+bw*0.15+c*(bw*0.25);
+    const wy=by-bh+bh*0.12+r*(bh*0.2);
+    ctx.fillStyle='rgba(144,202,249,0.35)'; ctx.fillRect(wx,wy,winW,winH);
+    ctx.strokeStyle='#90caf9'; ctx.lineWidth=0.5; ctx.strokeRect(wx,wy,winW,winH);
+  }
+
+  // Wind arrows (left side)
+  const arrowN=5;
+  for(let i=0;i<arrowN;i++){
+    const ay=by-bh*(i/(arrowN-1||1));
+    const len=40+i*8;
+    ctx.strokeStyle='#4fc3f7'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(bx-len-8,ay); ctx.lineTo(bx-4,ay); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx-16,ay-6); ctx.lineTo(bx-4,ay); ctx.lineTo(bx-16,ay+6); ctx.stroke();
+  }
+  ctx.font='bold 10px monospace'; ctx.fillStyle='#4fc3f7';
+  ctx.fillText('WIND →', bx-72, by-bh/2);
+
+  // Pressure distribution (windward)
+  ctx.fillStyle='rgba(255,152,0,0.2)';
+  ctx.beginPath(); ctx.moveTo(bx,by-bh); ctx.lineTo(bx-20,by-bh); ctx.lineTo(bx-8,by); ctx.lineTo(bx,by); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#ff9800'; ctx.lineWidth=1; ctx.stroke();
+
+  // Suction (leeward)
+  ctx.fillStyle='rgba(244,67,54,0.15)';
+  ctx.beginPath(); ctx.moveTo(bx+bw,by-bh); ctx.lineTo(bx+bw+18,by-bh); ctx.lineTo(bx+bw+10,by); ctx.lineTo(bx+bw,by); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#ef5350'; ctx.lineWidth=1; ctx.stroke();
+
+  ctx.font='bold 11px monospace'; ctx.fillStyle='#ff9800';
+  ctx.fillText('IS 875 Pt 3', 8,16);
+  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='9px monospace';
+  ctx.fillText(`H=${bldH}m`, bx-26,by-bh/2-6);
+  ctx.fillText(`B=${bldB}m`, bx+bw/2-12,by+14);
+}
+
+/* ===== BEAM LOAD CALC ===== */
+function calcBeamLoad() {
+  const L    = sn(document.getElementById('bl_span').value);
+  const b    = sn(document.getElementById('bl_b').value);
+  const D    = sn(document.getElementById('bl_d').value);
+  const dl   = sn(document.getElementById('bl_dl').value);
+  const ll   = sn(document.getElementById('bl_ll').value);
+  const P    = sn(document.getElementById('bl_pl').value);
+  const supp = document.getElementById('bl_support').value;
+  const lfVal = document.getElementById('bl_lf').value;
+  const lf   = lfVal === 'custom' ? sn(document.getElementById('bl_lf_custom')?.value) || 1.5 : parseFloat(lfVal);
+
+  const selfWt = 25 * b * D;
+  const w  = dl + ll + selfWt;
+  const wu = lf * w;
+  const Pu = lf * P;
+
+  let Mmax, Mfixed, Vmax, Ra, Rb;
+  if (supp === 'ss') {
+    Mmax = wu*L*L/8 + Pu*L/4;
+    Ra = Rb = wu*L/2 + Pu/2; Vmax = Ra;
+  } else if (supp === 'fixed') {
+    Mmax = wu*L*L/16 + Pu*L/8;
+    Mfixed = wu*L*L/12 + Pu*L/8;
+    Ra = Rb = wu*L/2 + Pu/2; Vmax = Ra;
+  } else if (supp === 'cantilever') {
+    Mmax = wu*L*L/2 + Pu*L;
+    Ra = wu*L + Pu; Rb = 0; Vmax = Ra;
+  } else {
+    Mmax = wu*L*L/8 + Pu*L/4;
+    Ra = Rb = wu*L/2 + Pu/2; Vmax = Ra;
+  }
+
+  const outEl = document.getElementById('beam_load_output');
+  outEl.style.display = 'block';
+  outEl.innerHTML = `
+    <div class="result-card">
+      <div style="font-weight:800;font-size:15px;color:#1e40af;margin-bottom:10px;">
+        📊 Beam Load Results — ${supp.replace('_',' ').toUpperCase()}
+      </div>
+      <div style="font-size:12px;background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:10px;margin-bottom:10px;line-height:2;">
+        <b>Self Weight:</b> ${selfWt.toFixed(2)} kN/m &nbsp;|&nbsp;
+        <b>Total w (service):</b> ${w.toFixed(2)} kN/m &nbsp;|&nbsp;
+        <b>Total wu (factored):</b> ${wu.toFixed(2)} kN/m (×${lf})
+      </div>
+      <div class="load-summary-box">
+        <div class="lsb-item"><div class="lsv">${Mmax.toFixed(2)}</div><div class="lsl">Factored Mmax (kNm)</div></div>
+        <div class="lsb-item"><div class="lsv">${Vmax.toFixed(2)}</div><div class="lsl">Factored Vmax (kN)</div></div>
+        <div class="lsb-item"><div class="lsv">${Ra.toFixed(2)}</div><div class="lsl">Reaction Ra (kN)</div></div>
+        <div class="lsb-item"><div class="lsv">${Rb.toFixed(2)}</div><div class="lsl">Reaction Rb (kN)</div></div>
+      </div>
+      <div class="factored-box" style="margin-top:10px;">
+        <div class="fbt">Load Combinations (IS 456 Cl.18.2)</div>
+        <div class="factored-grid">
+          <div class="fg-item"><div class="fgv">${(1.5*w*L*L/8).toFixed(1)}</div><div class="fgl">1.5(DL+LL) Moment</div></div>
+          <div class="fg-item"><div class="fgv">${(1.5*(dl+selfWt)*L*L/8).toFixed(1)}</div><div class="fgl">1.5 DL Moment</div></div>
+          <div class="fg-item"><div class="fgv">${(wu*L).toFixed(1)}</div><div class="fgl">Total Factored Load (kN)</div></div>
+        </div>
+      </div>
+    </div>`;
+  updateBeamDiagram();
+}
+
+/* ===== SLAB LOAD CALC ===== */
+function calcSlabLoad() {
+  const lx   = sn(document.getElementById('sl_lx').value);
+  const ly   = sn(document.getElementById('sl_ly').value);
+  const t    = sn(document.getElementById('sl_t').value);
+  const ff   = sn(document.getElementById('sl_ff').value);
+  const ll   = sn(document.getElementById('sl_ll').value);
+  const wl   = sn(document.getElementById('sl_wl').value);
+  const wp   = sn(document.getElementById('sl_wp').value);
+  const type = document.getElementById('sl_type').value;
+
+  const selfWt = 25 * t;
+  const totalDL = selfWt + ff + wl + wp;
+  const totalLL = ll;
+  const totalW  = totalDL + totalLL;
+  const wu      = 1.5 * totalW;
+
+  const ratio = ly / lx;
+  const isTwoWay = ratio < 2;
+
+  let Mx = 0, My = 0;
+  if (isTwoWay) {
+    const alphax = Math.pow(ratio, 2) / (2 * (1 + Math.pow(ratio, 2)));
+    const alphay = 1 - alphax;
+    Mx = alphax * wu * lx * lx;
+    My = alphay * wu * lx * lx;
+  } else {
+    Mx = wu * lx * lx / 8;
+    My = wu * ly * ly / 8;
+  }
+
+  const outEl = document.getElementById('slab_load_output');
+  outEl.style.display = 'block';
+  outEl.innerHTML = `
+    <div class="result-card">
+      <div style="font-weight:800;font-size:15px;color:#1e40af;margin-bottom:10px;">📊 Slab Load Results — ${type.replace('_',' ').toUpperCase()}</div>
+      <div style="font-size:12px;background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:10px;margin-bottom:10px;line-height:2;">
+        <b>Lx/Ly ratio:</b> ${(ly/lx).toFixed(2)} → <b>${isTwoWay?'Two-Way':'One-Way'} Slab</b><br>
+        <b>Self wt:</b> ${selfWt.toFixed(1)} | <b>FF:</b> ${ff} | <b>LL:</b> ${ll} | <b>WP:</b> ${wp} kN/m²<br>
+        <b>Total DL:</b> ${totalDL.toFixed(2)} kN/m² | <b>Total LL:</b> ${totalLL.toFixed(2)} kN/m²
+      </div>
+      <div class="load-summary-box">
+        <div class="lsb-item"><div class="lsv">${totalW.toFixed(2)}</div><div class="lsl">Service Load (kN/m²)</div></div>
+        <div class="lsb-item"><div class="lsv">${wu.toFixed(2)}</div><div class="lsl">Factored wu (kN/m²)</div></div>
+        <div class="lsb-item"><div class="lsv">${Mx.toFixed(2)}</div><div class="lsl">Mx (kNm/m) ${isTwoWay?'short span':''}</div></div>
+        <div class="lsb-item"><div class="lsv">${My.toFixed(2)}</div><div class="lsl">My (kNm/m) ${isTwoWay?'long span':''}</div></div>
+        <div class="lsb-item"><div class="lsv">${(wu*lx/2).toFixed(2)}</div><div class="lsl">Shear Vx (kN/m)</div></div>
+        <div class="lsb-item"><div class="lsv">${(totalW*lx*ly).toFixed(1)}</div><div class="lsl">Total Panel Load (kN)</div></div>
+      </div>
+    </div>`;
+  updateSlabDiagram();
+}
+
+/* ===== COLUMN LOAD CALC ===== */
+function calcColumnLoad() {
+  const floors = sn(document.getElementById('cl_floors').value);
+  const fh     = sn(document.getElementById('cl_fh').value);
+  const tx     = sn(document.getElementById('cl_tx').value);
+  const ty     = sn(document.getElementById('cl_ty').value);
+  const dl     = sn(document.getElementById('cl_dl').value);
+  const ll     = sn(document.getElementById('cl_ll').value);
+  const sw     = sn(document.getElementById('cl_sw').value);
+  const bw     = sn(document.getElementById('cl_bw').value);
+
+  const tribArea   = tx * ty;
+  const floorLoad  = (dl + ll) * tribArea;
+  const colSelfWt  = sw * fh * floors;
+  const beamWall   = bw * floors;
+  const totalService = floorLoad * floors + colSelfWt + beamWall;
+  const totalFactored = 1.5 * totalService;
+
+  const outEl = document.getElementById('column_load_output');
+  outEl.style.display = 'block';
+  outEl.innerHTML = `
+    <div class="result-card">
+      <div style="font-weight:800;font-size:15px;color:#1e40af;margin-bottom:10px;">📊 Column Axial Load — ${floors} Floors</div>
+      <div style="font-size:12px;background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:10px;margin-bottom:10px;line-height:2;">
+        <b>Tributary Area:</b> ${tribArea.toFixed(2)} m² | <b>Floor Load/floor:</b> ${floorLoad.toFixed(1)} kN<br>
+        <b>Col Self-wt:</b> ${colSelfWt.toFixed(1)} kN | <b>Beam/Wall:</b> ${beamWall.toFixed(1)} kN
+      </div>
+      <div class="load-summary-box">
+        <div class="lsb-item"><div class="lsv">${totalService.toFixed(1)}</div><div class="lsl">Service Load (kN)</div></div>
+        <div class="lsb-item"><div class="lsv">${totalFactored.toFixed(1)}</div><div class="lsl">Factored Load Pu (kN)</div></div>
+        <div class="lsb-item"><div class="lsv">${floorLoad.toFixed(1)}</div><div class="lsl">Load/Floor (kN)</div></div>
+        <div class="lsb-item"><div class="lsv">${(totalFactored/1000).toFixed(3)}</div><div class="lsl">Pu (MN)</div></div>
+      </div>
+      <div class="md-info" style="margin-top:10px;">
+        💡 For column design: Pu = ${totalFactored.toFixed(1)} kN — use IS 456 Cl.39 for axial capacity.
+      </div>
+    </div>`;
+}
+
+/* ===== WALL LOAD CALC ===== */
+function calcWallLoad() {
+  const type   = document.getElementById('wl_type').value;
+  const t      = sn(document.getElementById('wl_t').value);
+  const height = sn(document.getElementById('wl_h').value);
+  const length = sn(document.getElementById('wl_l').value);
+  const op     = sn(document.getElementById('wl_op').value) / 100;
+  const plaster = sn(document.getElementById('wl_pl').value);
+
+  const densMap = { brick:19, aac:7, ccb:20, stone:26 };
+  const dens    = type === 'custom' ? sn(document.getElementById('wl_den').value) : (densMap[type]||19);
+
+  const grossArea  = height * length;
+  const netArea    = grossArea * (1 - op);
+  const wallWt     = dens * t * netArea;
+  const plasterWt  = plaster * grossArea;
+  const totalWt    = wallWt + plasterWt;
+  const loadPerM   = totalWt / length;
+  const factored   = 1.5 * loadPerM;
+
+  const outEl = document.getElementById('wall_load_output');
+  outEl.style.display = 'block';
+  outEl.innerHTML = `
+    <div class="result-card">
+      <div style="font-weight:800;font-size:15px;color:#1e40af;margin-bottom:10px;">📊 Wall Load Results</div>
+      <div class="load-summary-box">
+        <div class="lsb-item"><div class="lsv">${totalWt.toFixed(2)}</div><div class="lsl">Total Wall Weight (kN)</div></div>
+        <div class="lsb-item"><div class="lsv">${loadPerM.toFixed(2)}</div><div class="lsl">Load per metre (kN/m)</div></div>
+        <div class="lsb-item"><div class="lsv">${wallWt.toFixed(2)}</div><div class="lsl">Masonry Weight (kN)</div></div>
+        <div class="lsb-item"><div class="lsv">${factored.toFixed(2)}</div><div class="lsl">Factored (1.5×) kN/m</div></div>
+      </div>
+    </div>`;
+}
+
+/* ===== WIND LOAD CALC ===== */
+function calcWindLoad() {
+  const Vb  = sn(document.getElementById('wnd_vb').value);
+  const k1  = sn(document.getElementById('wnd_k1').value);
+  const k2t = parseInt(document.getElementById('wnd_terrain').value);
+  const k3  = sn(document.getElementById('wnd_k3').value);
+  const Ht  = sn(document.getElementById('wnd_h').value);
+  const B   = sn(document.getElementById('wnd_b').value);
+  const Cpe = sn(document.getElementById('wnd_cpe').value);
+  const Cpi = sn(document.getElementById('wnd_cpi').value);
+
+  // k2 from terrain & height (IS 875 Table 2 approx)
+  const k2Map = {1:[1.05,1.08,1.12,1.16],2:[0.98,1.00,1.03,1.07],3:[0.88,0.91,0.95,1.00],4:[0.75,0.80,0.85,0.92]};
+  const htIdx = Ht<=10?0:Ht<=20?1:Ht<=30?2:3;
+  const k2   = (k2Map[k2t] || k2Map[2])[htIdx];
+
+  const Vz  = Vb * k1 * k2 * k3;
+  const pz  = 0.6 * Vz * Vz / 1000; // kN/m²
+  const Cp  = Cpe - Cpi;
+  const F   = pz * Cp;
+  const totalWind = F * Ht * B;
+
+  const outEl = document.getElementById('wind_load_output');
+  outEl.style.display = 'block';
+  outEl.innerHTML = `
+    <div class="result-card">
+      <div style="font-weight:800;font-size:15px;color:#1e40af;margin-bottom:10px;">📊 Wind Load Results (IS 875 Pt 3)</div>
+      <div style="font-size:12px;background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:10px;margin-bottom:10px;line-height:2;">
+        <b>Vz = Vb×k1×k2×k3 =</b> ${Vb}×${k1}×${k2.toFixed(3)}×${k3} = <b>${Vz.toFixed(2)} m/s</b><br>
+        <b>Design Wind Pressure:</b> 0.6×Vz² = <b>${pz.toFixed(3)} kN/m²</b><br>
+        <b>Cp = Cpe−Cpi =</b> ${Cpe}−(${Cpi}) = <b>${Cp.toFixed(2)}</b>
+      </div>
+      <div class="load-summary-box">
+        <div class="lsb-item"><div class="lsv">${Vz.toFixed(1)}</div><div class="lsl">Design Wind Speed Vz (m/s)</div></div>
+        <div class="lsb-item"><div class="lsv">${pz.toFixed(3)}</div><div class="lsl">Wind Pressure pz (kN/m²)</div></div>
+        <div class="lsb-item"><div class="lsv">${F.toFixed(3)}</div><div class="lsl">Net Pressure F (kN/m²)</div></div>
+        <div class="lsb-item"><div class="lsv">${totalWind.toFixed(2)}</div><div class="lsl">Total Wind Force (kN)</div></div>
+      </div>
+    </div>`;
+  updateWindDiagram();
+}
+
+/* ===== SEISMIC CALC ===== */
+function calcSeismicLoad() {
+  const Z    = sn(document.getElementById('eq_z').value);
+  const I    = sn(document.getElementById('eq_i').value);
+  const R    = sn(document.getElementById('eq_r').value);
+  const W    = sn(document.getElementById('eq_w').value);
+  const Ht   = sn(document.getElementById('eq_h').value);
+  const soil = document.getElementById('eq_soil').value;
+
+  let T = sn(document.getElementById('eq_tp').value);
+  if (!T || T <= 0) T = 0.075 * Math.pow(Ht, 0.75);
+
+  const SaG_map = {
+    I:  { low:2.5, mid:t=>t<0.4?2.5:t<4?1.0/t:0.25 },
+    II: { low:2.5, mid:t=>t<0.55?2.5:t<4?1.36/t:0.34 },
+    III:{ low:2.5, mid:t=>t<0.67?2.5:t<4?1.67/t:0.42 }
+  };
+  const SaGfn = SaG_map[soil] || SaG_map['II'];
+  const SaG = T <= 0.1 ? SaGfn.low : SaGfn.mid(T);
+
+  const Ah  = (Z * I * SaG) / (2 * R);
+  const Vb  = Ah * W;
+
+  const outEl = document.getElementById('seismic_output');
+  outEl.style.display = 'block';
+  outEl.innerHTML = `
+    <div class="result-card">
+      <div style="font-weight:800;font-size:15px;color:#1e40af;margin-bottom:10px;">📊 Seismic Base Shear (IS 1893 : 2016)</div>
+      <div style="font-size:12px;background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:10px;margin-bottom:10px;line-height:2;">
+        <b>T = 0.075×H^0.75 =</b> ${T.toFixed(3)} s &nbsp;|&nbsp; <b>Sa/g =</b> ${SaG.toFixed(3)}<br>
+        <b>Ah = (Z×I×Sa/g)/(2R) =</b> (${Z}×${I}×${SaG.toFixed(3)})/(2×${R}) = <b>${Ah.toFixed(4)}</b>
+      </div>
+      <div class="load-summary-box">
+        <div class="lsb-item"><div class="lsv">${T.toFixed(3)}</div><div class="lsl">Time Period T (s)</div></div>
+        <div class="lsb-item"><div class="lsv">${SaG.toFixed(3)}</div><div class="lsl">Sa/g (Spectral Accel.)</div></div>
+        <div class="lsb-item"><div class="lsv">${Ah.toFixed(4)}</div><div class="lsl">Design Seismic Coeff Ah</div></div>
+        <div class="lsb-item"><div class="lsv">${Vb.toFixed(2)}</div><div class="lsl">Base Shear Vb (kN)</div></div>
+        <div class="lsb-item"><div class="lsv">${(Ah*100).toFixed(2)}%</div><div class="lsl">% of Seismic Weight</div></div>
+        <div class="lsb-item"><div class="lsv">${(1.5*Vb).toFixed(2)}</div><div class="lsl">Factored (1.5×Vb) kN</div></div>
+      </div>
+      <div class="md-info" style="margin-top:10px;">
+        💡 Distribute Vb = ${Vb.toFixed(2)} kN over building height using IS 1893 Cl.7.7.
+      </div>
+    </div>`;
+}
+
+/* THEME */
+function toggleTheme() {
+  document.body.classList.toggle('light-mode');
+  const btn = document.getElementById('themeBtn');
+  btn.textContent = document.body.classList.contains('light-mode') ? '🌙' : '☀️';
+  localStorage.setItem('civilcalc_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  if (localStorage.getItem('civilcalc_theme') === 'light') {
+    document.body.classList.add('light-mode');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }
+  setTimeout(updateBeamDiagram, 100);
+});
+</script>
+</body>
+</html>

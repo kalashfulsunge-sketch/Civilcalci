@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CivilCalci — Unit Converter</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<style>
+/* ===== UNIT CONVERTER SPECIFIC ===== */
+.uc-category-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 8px;
+}
+.uc-cat-btn {
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1.5px solid #d1d9e6;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #f8fafd;
+  color: #374151;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.uc-cat-btn.active { background: #0b7dda; color: #fff; border-color: #0b7dda; }
+.uc-cat-btn:hover:not(.active) { border-color: #0b7dda; color: #0b7dda; }
+
+.uc-main-box {
+  background: linear-gradient(135deg, #f0f7ff, #e8f4ff);
+  border: 2px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 18px;
+  margin-top: 10px;
+}
+
+.uc-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: end;
+  margin-top: 12px;
+}
+@media(max-width:600px){ .uc-input-row { grid-template-columns: 1fr; } }
+
+.uc-field { display: flex; flex-direction: column; gap: 5px; }
+.uc-field label { font-size: 12px; font-weight: 700; color: #374151; }
+.uc-field input, .uc-field select {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #bfdbfe;
+  font-size: 15px;
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  color: #111;
+  font-weight: 600;
+}
+.uc-field input:focus, .uc-field select:focus {
+  outline: 2px solid #0b7dda;
+  border-color: #0b7dda;
+}
+
+.uc-swap-btn {
+  background: #0b7dda;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0;
+  flex-shrink: 0;
+  transition: transform .2s, background .15s;
+  align-self: center;
+}
+.uc-swap-btn:hover { background: #0a6fb8; transform: rotate(180deg); }
+
+.uc-result-box {
+  background: #fff;
+  border: 2px solid #0b7dda;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.uc-result-val {
+  font-size: 26px;
+  font-weight: 900;
+  color: #0b7dda;
+  word-break: break-all;
+}
+.uc-result-label {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.uc-formula-box {
+  background: #f8fafd;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.uc-formula-box .fi { color: #0b7dda; font-size: 16px; }
+
+.uc-custom-row {
+  display: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+  background: #fffbeb;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  padding: 10px;
+}
+.uc-custom-row.show { display: grid; }
+.uc-custom-row label { font-size: 11px; font-weight: 700; color: #92400e; }
+.uc-custom-row input {
+  padding: 7px 9px; border-radius:6px; border:1px solid #fbbf24;
+  font-size:13px; width:100%; box-sizing:border-box;
+}
+
+/* Quick reference table */
+.uc-ref-table { width:100%; font-size:12px; border-collapse:collapse; margin-top:8px; }
+.uc-ref-table th { background:#f0f4fa; padding:7px 8px; text-align:left; border-bottom:2px solid #e9eef6; font-size:11px; }
+.uc-ref-table td { padding:6px 8px; border-bottom:1px solid #e9eef6; }
+.uc-ref-table tr:hover td { background:#f7faff; }
+
+/* History */
+.uc-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  background: #f8fafd;
+  border-radius: 7px;
+  margin-bottom: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+}
+.uc-history-item:hover { background: #e8f4ff; border-color: #bfdbfe; }
+.uc-history-val { font-weight: 700; color: #0b7dda; }
+.uc-history-from { color: #6b7280; }
+
+.uc-tabs { display:flex; gap:4px; margin-bottom:10px; }
+.uc-tab { padding:5px 12px; border-radius:6px; border:1.5px solid #d1d9e6; font-size:11px; font-weight:700; cursor:pointer; background:#f8fafd; color:#374151; }
+.uc-tab.active { background:#0b7dda; color:#fff; border-color:#0b7dda; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CivilCalci — Advanced Estimator</h1>
+  <p>Volume &amp; material calculators &bull; steel &amp; BBS generator &bull; cost estimation &bull; PDF report</p>
+</header>
+
+<div class="topnav">
+  <a class="tab-btn" href="index.html">Calculators</a>
+  <a class="tab-btn" href="steel-bbs.html">Steel &amp; BBS</a>
+  <a class="tab-btn" href="mix-design.html">Mix Design</a>
+  <a class="tab-btn" href="unit-converter.html">Unit Converter</a>
+  <a class="tab-btn" href="cost-estimate.html">Cost &amp; Estimate</a>
+  <a class="tab-btn" href="staircase.html">Staircase</a>
+  <a class="tab-btn" href="load-calc.html">Load Calc</a>
+  <a class="tab-btn" href="is-codes.html">IS Codes</a>
+</div>
+
+<div class="content">
+
+  <!-- LEFT: Unit Converter -->
+  <div class="panel">
+    <div class="card">
+      <h3>🔄 Unit Converter</h3>
+      <div class="small muted">All units used in Civil Engineering — select a category, pick units, enter value.</div>
+
+      <!-- Category Buttons -->
+      <div class="uc-category-bar" id="uc_cats">
+        <button class="uc-cat-btn active" onclick="selectCategory('length')">📏 Length</button>
+        <button class="uc-cat-btn" onclick="selectCategory('area')">⬜ Area</button>
+        <button class="uc-cat-btn" onclick="selectCategory('volume')">📦 Volume</button>
+        <button class="uc-cat-btn" onclick="selectCategory('mass')">⚖️ Mass</button>
+        <button class="uc-cat-btn" onclick="selectCategory('force')">💪 Force</button>
+        <button class="uc-cat-btn" onclick="selectCategory('pressure')">🔴 Pressure/Stress</button>
+        <button class="uc-cat-btn" onclick="selectCategory('moment')">🔧 Moment</button>
+        <button class="uc-cat-btn" onclick="selectCategory('density')">🧱 Density</button>
+        <button class="uc-cat-btn" onclick="selectCategory('speed')">💨 Speed/Flow</button>
+        <button class="uc-cat-btn" onclick="selectCategory('temperature')">🌡️ Temperature</button>
+        <button class="uc-cat-btn" onclick="selectCategory('angle')">📐 Angle</button>
+        <button class="uc-cat-btn" onclick="selectCategory('energy')">⚡ Energy/Power</button>
+        <button class="uc-cat-btn" onclick="selectCategory('time')">⏱️ Time</button>
+        <button class="uc-cat-btn" onclick="selectCategory('load')">🏗️ Load (kN/m)</button>
+        <button class="uc-cat-btn" onclick="selectCategory('concrete')">🏠 Concrete Mix</button>
+      </div>
+
+      <!-- Main Converter Box -->
+      <div class="uc-main-box">
+        <div style="font-size:13px;font-weight:700;color:#1e40af;" id="uc_cat_title">📏 Length</div>
+
+        <div class="uc-input-row">
+          <!-- FROM -->
+          <div class="uc-field">
+            <label>From Unit</label>
+            <select id="uc_from" onchange="doConvert()"></select>
+            <input id="uc_from_val" type="number" placeholder="Enter value..." oninput="doConvert()" style="margin-top:6px;">
+          </div>
+
+          <!-- Swap -->
+          <button class="uc-swap-btn" onclick="swapUnits()" title="Swap units">⇄</button>
+
+          <!-- TO -->
+          <div class="uc-field">
+            <label>To Unit</label>
+            <select id="uc_to" onchange="doConvert()"></select>
+            <input id="uc_to_val" type="number" placeholder="Result..." readonly style="margin-top:6px;background:#f0f7ff;cursor:default;">
+          </div>
+        </div>
+
+        <!-- Custom unit rows -->
+        <div class="uc-custom-row" id="uc_custom_from_row">
+          <div>
+            <label>Custom Unit Name (From)</label>
+            <input type="text" id="uc_custom_from_name" placeholder="e.g. My Unit">
+          </div>
+          <div>
+            <label>Factor to SI base unit</label>
+            <input type="number" id="uc_custom_from_factor" placeholder="e.g. 0.3048" oninput="doConvert()">
+          </div>
+        </div>
+        <div class="uc-custom-row" id="uc_custom_to_row">
+          <div>
+            <label>Custom Unit Name (To)</label>
+            <input type="text" id="uc_custom_to_name" placeholder="e.g. My Unit">
+          </div>
+          <div>
+            <label>Factor to SI base unit</label>
+            <input type="number" id="uc_custom_to_factor" placeholder="e.g. 0.3048" oninput="doConvert()">
+          </div>
+        </div>
+
+        <!-- Result -->
+        <div class="uc-result-box" id="uc_result_box" style="display:none;">
+          <div>
+            <div class="uc-result-val" id="uc_result_val">—</div>
+            <div class="uc-result-label" id="uc_result_label">—</div>
+          </div>
+          <button class="btn" style="width:auto;padding:8px 14px;font-size:12px;" onclick="copyResult()">📋 Copy</button>
+        </div>
+
+        <!-- Formula -->
+        <div class="uc-formula-box" id="uc_formula" style="display:none;">
+          <span class="fi">ℹ️</span>
+          <span id="uc_formula_text"></span>
+        </div>
+      </div>
+
+      <!-- Quick Conversion Table -->
+      <div class="card" style="margin-top:14px;padding:14px;">
+        <div class="uc-tabs">
+          <div class="uc-tab active" onclick="switchRefTab('quick')" id="reftab_quick">Quick Reference</div>
+          <div class="uc-tab" onclick="switchRefTab('history')" id="reftab_history">History</div>
+        </div>
+
+        <div id="ref_quick">
+          <div class="small muted" style="margin-bottom:8px;" id="uc_ref_title">Common length conversions</div>
+          <div style="overflow-x:auto;">
+            <table class="uc-ref-table" id="uc_ref_table">
+              <thead><tr id="uc_ref_head"></tr></thead>
+              <tbody id="uc_ref_body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="ref_history" style="display:none;">
+          <div class="small muted" style="margin-bottom:8px;">Click a history item to re-use it</div>
+          <div id="uc_history_list">
+            <div style="color:#999;font-size:13px;font-style:italic;">No conversions yet.</div>
+          </div>
+          <button class="btn btn-red" style="margin-top:8px;width:auto;padding:6px 12px;font-size:12px;" onclick="clearHistory()">🗑 Clear History</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Civil Engineering Constants Reference -->
+    <div class="card">
+      <h3>Civil Engineering Unit Constants</h3>
+      <div class="small muted">Commonly used constants and conversions in civil engineering practice (IS system).</div>
+      <div style="overflow-x:auto;margin-top:10px;">
+        <table class="uc-ref-table">
+          <thead><tr><th>Constant / Relation</th><th>Value</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>1 kN/m² = ?</td><td>1 kPa</td><td>Pressure units</td></tr>
+            <tr><td>1 MPa = ?</td><td>1 N/mm²</td><td>Stress units (IS 456)</td></tr>
+            <tr><td>Unit wt of RCC</td><td>25 kN/m³</td><td>IS 875 Pt1</td></tr>
+            <tr><td>Unit wt of PCC</td><td>24 kN/m³</td><td>IS 875 Pt1</td></tr>
+            <tr><td>Unit wt of Steel</td><td>78.5 kN/m³</td><td>IS 875 Pt1</td></tr>
+            <tr><td>Unit wt of Brick</td><td>19–20 kN/m³</td><td>IS 875 Pt1</td></tr>
+            <tr><td>Unit wt of Water</td><td>10 kN/m³</td><td>IS 875 Pt1</td></tr>
+            <tr><td>g (gravity)</td><td>9.81 m/s²</td><td>Standard</td></tr>
+            <tr><td>1 tonne-force = ?</td><td>9.81 kN</td><td>Load conversion</td></tr>
+            <tr><td>1 kgf = ?</td><td>9.81 N</td><td>Force</td></tr>
+            <tr><td>1 bar = ?</td><td>100 kPa</td><td>Pressure</td></tr>
+            <tr><td>1 atm = ?</td><td>101.325 kPa</td><td>Pressure</td></tr>
+            <tr><td>1 psi = ?</td><td>6.895 kPa</td><td>Pressure</td></tr>
+            <tr><td>1 ft = ?</td><td>304.8 mm</td><td>Dimension</td></tr>
+            <tr><td>1 inch = ?</td><td>25.4 mm</td><td>Dimension</td></tr>
+            <tr><td>1 acre = ?</td><td>4046.86 m²</td><td>Land area</td></tr>
+            <tr><td>1 guntha = ?</td><td>101.17 m²</td><td>Land area (India)</td></tr>
+            <tr><td>1 bigha (UP) = ?</td><td>2529.3 m²</td><td>Land area (India)</td></tr>
+            <tr><td>1 marla = ?</td><td>25.29 m²</td><td>Land area (India/Pak)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- end panel -->
+
+  <!-- RIGHT: Estimate Summary -->
+  <aside class="summary">
+    <div class="card">
+      <h4>Estimate Summary</h4>
+      <div class="small muted">Enter local rates below and add items from calculators.</div>
+      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label>Cement (₹/50kg bag)</label><input id="rate_cement" type="number" step="0.01" placeholder="e.g. 420" oninput="syncRateInputs('cement',this.value)"></div>
+        <div><label>Sand (₹/m³)</label><input id="rate_sand" type="number" step="0.01" placeholder="e.g. 1600" oninput="syncRateInputs('sand',this.value)"></div>
+        <div><label>Aggregate (₹/m³)</label><input id="rate_agg" type="number" step="0.01" placeholder="e.g. 2000" oninput="syncRateInputs('agg',this.value)"></div>
+        <div><label>Steel (₹/kg)</label><input id="rate_steel" type="number" step="0.01" placeholder="e.g. 70" oninput="syncRateInputs('steel',this.value)"></div>
+      </div>
+      <button class="btn" style="margin-top:10px;" onclick="recomputeEstimate()">Recompute Estimate</button>
+      <div class="estimate-table-wrap">
+        <table id="estimate_table">
+          <thead>
+            <tr><th>#</th><th>Item</th><th>Vol (m³)</th><th>Cement</th><th>Sand</th><th>Agg</th><th>Steel</th><th>Grade</th><th>Cost (₹)</th><th>Notes</th><th>Del</th></tr>
+          </thead>
+          <tbody id="estimate_tbody"></tbody>
+        </table>
+      </div>
+      <div class="total-line">
+        <div>Total Project Cost</div>
+        <div id="estimate_total">₹ 0</div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" style="flex:1;" onclick="exportPDF()">📄 Export PDF</button>
+        <button class="btn btn-orange" style="flex:1;" onclick="printReport()">🖨 Print</button>
+        <button class="btn btn-red" style="flex:1;" onclick="clearEstimate()">🗑 Clear All</button>
+      </div>
+      <div class="tiny" style="margin-top:8px;">Tip: Your estimate is auto-saved and persists across all pages.</div>
+    </div>
+
+    <div class="card">
+      <h4>IS Codes &amp; Notes</h4>
+      <ul class="is-list">
+        <li><strong>IS 456</strong> : Plain &amp; Reinforced Concrete</li>
+        <li><strong>IS 10262</strong> : Concrete Mix Design</li>
+        <li><strong>IS 383</strong> : Aggregates for Concrete</li>
+        <li><strong>IS 875</strong> : Loads — Dead, Live</li>
+        <li><strong>IS 1893</strong> : Earthquake Resistant Design</li>
+      </ul>
+    </div>
+  </aside>
+
+</div><!-- .content -->
+
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+
+<script src="script.js"></script>
+<script>
+/* ============================================================
+   UNIT DEFINITIONS
+   Each unit has: { label, factor, note? }
+   factor = multiplier to convert TO the SI base unit
+   Special handling for Temperature (non-linear)
+============================================================ */
+const UNIT_CATEGORIES = {
+
+  length: {
+    title: '📏 Length',
+    base: 'm',
+    refTitle: 'Common length conversions (to metre)',
+    units: [
+      { label:'Millimetre (mm)',      factor:0.001 },
+      { label:'Centimetre (cm)',      factor:0.01 },
+      { label:'Metre (m)',            factor:1 },
+      { label:'Kilometre (km)',       factor:1000 },
+      { label:'Inch (in)',            factor:0.0254 },
+      { label:'Foot (ft)',            factor:0.3048 },
+      { label:'Yard (yd)',            factor:0.9144 },
+      { label:'Mile (mi)',            factor:1609.344 },
+      { label:'Nautical Mile (nmi)', factor:1852 },
+      { label:'Micrometre (µm)',      factor:0.000001 },
+      { label:'Nanometre (nm)',       factor:1e-9 },
+      { label:'Furlong',              factor:201.168 },
+      { label:'Custom',              factor:1, custom:true },
+    ],
+    ref: [
+      ['1 m','100 cm','1000 mm','3.281 ft','39.37 in'],
+      ['1 ft','0.3048 m','30.48 cm','304.8 mm','12 in'],
+      ['1 km','1000 m','3280.84 ft','0.6214 mi'],
+      ['1 in','25.4 mm','2.54 cm','0.0833 ft'],
+      ['1 mile','1609.34 m','1.609 km','5280 ft'],
+    ],
+    refHead: ['From','= m','= cm','= ft','= in'],
+  },
+
+  area: {
+    title: '⬜ Area',
+    base: 'm²',
+    refTitle: 'Common area conversions (to m²)',
+    units: [
+      { label:'mm²',                  factor:0.000001 },
+      { label:'cm²',                  factor:0.0001 },
+      { label:'m²',                   factor:1 },
+      { label:'km²',                  factor:1e6 },
+      { label:'Hectare (ha)',         factor:10000 },
+      { label:'Acre',                 factor:4046.856 },
+      { label:'in²',                  factor:0.00064516 },
+      { label:'ft²',                  factor:0.09290304 },
+      { label:'yd²',                  factor:0.83612736 },
+      { label:'Guntha (India)',       factor:101.1715 },
+      { label:'Cent (India)',         factor:40.4686 },
+      { label:'Bigha (UP/Bihar)',     factor:2529.3 },
+      { label:'Bigha (Bengal)',       factor:1337.8 },
+      { label:'Marla (India/Pak)',    factor:25.2929 },
+      { label:'Kanal',                factor:505.857 },
+      { label:'Biswa (UP)',           factor:125.417 },
+      { label:'Custom',              factor:1, custom:true },
+    ],
+    ref: [
+      ['1 m²','10.764 ft²','10000 cm²','1 m²','0.0001 ha'],
+      ['1 ft²','0.0929 m²','929 cm²'],
+      ['1 acre','4046.86 m²','0.4047 ha','43560 ft²'],
+      ['1 ha','10000 m²','2.471 acres','107639 ft²'],
+      ['1 guntha','101.17 m²','0.025 acres'],
+    ],
+    refHead: ['Unit','Value 1','Value 2','Value 3'],
+  },
+
+  volume: {
+    title: '📦 Volume',
+    base: 'm³',
+    refTitle: 'Common volume conversions (to m³)',
+    units: [
+      { label:'mm³',               factor:1e-9 },
+      { label:'cm³ (cc)',          factor:0.000001 },
+      { label:'Litre (L)',         factor:0.001 },
+      { label:'Millilitre (mL)',   factor:0.000001 },
+      { label:'m³',                factor:1 },
+      { label:'km³',               factor:1e9 },
+      { label:'in³',               factor:0.000016387 },
+      { label:'ft³',               factor:0.028316847 },
+      { label:'yd³',               factor:0.764554858 },
+      { label:'US Gallon',         factor:0.003785412 },
+      { label:'UK Gallon (Imp.)',  factor:0.004546092 },
+      { label:'US Fluid Ounce',   factor:0.000029574 },
+      { label:'Barrel (oil)',      factor:0.158987 },
+      { label:'Cusec (ft³/s)',     factor:0.028316847, note:'Flow rate unit' },
+      { label:'Cumec (m³/s)',      factor:1, note:'Flow rate unit' },
+      { label:'Custom',           factor:1, custom:true },
+    ],
+    ref: [
+      ['1 m³','1000 L','35.315 ft³','264.17 US gal'],
+      ['1 ft³','28.317 L','0.02832 m³','7.481 US gal'],
+      ['1 L','0.001 m³','0.0353 ft³','0.2642 US gal'],
+      ['1 US gal','3.785 L','0.13368 ft³'],
+    ],
+    refHead: ['Unit','Value 1','Value 2','Value 3'],
+  },
+
+  mass: {
+    title: '⚖️ Mass / Weight',
+    base: 'kg',
+    refTitle: 'Common mass conversions (to kg)',
+    units: [
+      { label:'Milligram (mg)',     factor:0.000001 },
+      { label:'Gram (g)',           factor:0.001 },
+      { label:'Kilogram (kg)',      factor:1 },
+      { label:'Metric Tonne (t)',   factor:1000 },
+      { label:'Quintal',            factor:100 },
+      { label:'Pound (lb)',         factor:0.45359237 },
+      { label:'Ounce (oz)',         factor:0.028349523 },
+      { label:'US Ton (short ton)',factor:907.18474 },
+      { label:'UK Ton (long ton)', factor:1016.0469 },
+      { label:'Stone (st)',         factor:6.35029 },
+      { label:'Grain',              factor:0.0000647989 },
+      { label:'Custom',            factor:1, custom:true },
+    ],
+    ref: [
+      ['1 kg','1000 g','2.205 lb','0.001 tonne'],
+      ['1 tonne','1000 kg','2204.6 lb','0.9842 UK ton'],
+      ['1 lb','0.4536 kg','453.6 g','16 oz'],
+      ['1 quintal','100 kg','220.46 lb'],
+    ],
+    refHead: ['Unit','Value 1','Value 2','Value 3'],
+  },
+
+  force: {
+    title: '💪 Force',
+    base: 'N',
+    refTitle: 'Force unit conversions (to Newton)',
+    units: [
+      { label:'Newton (N)',           factor:1 },
+      { label:'Kilonewton (kN)',      factor:1000 },
+      { label:'Meganewton (MN)',      factor:1e6 },
+      { label:'Millinewton (mN)',     factor:0.001 },
+      { label:'Dyne',                 factor:0.00001 },
+      { label:'kgf (kilogram-force)', factor:9.80665 },
+      { label:'tf (tonne-force)',     factor:9806.65 },
+      { label:'lbf (pound-force)',    factor:4.44822 },
+      { label:'kip (1000 lbf)',       factor:4448.22 },
+      { label:'pdl (poundal)',        factor:0.138255 },
+      { label:'Custom',              factor:1, custom:true },
+    ],
+    ref: [
+      ['1 kN','1000 N','101.97 kgf','0.2248 kip'],
+      ['1 kgf','9.807 N','0.009807 kN'],
+      ['1 tf','9806.65 N','9.807 kN','2204.6 lbf'],
+      ['1 lbf','4.448 N','0.4536 kgf'],
+    ],
+    refHead: ['Unit','Value 1','Value 2','Value 3'],
+  },
+
+  pressure: {
+    title: '🔴 Pressure / Stress',
+    base: 'Pa',
+    refTitle: 'Pressure conversions (to Pascal)',
+    units: [
+      { label:'Pascal (Pa)',           factor:1 },
+      { label:'Kilopascal (kPa)',      factor:1000 },
+      { label:'Megapascal (MPa)',      factor:1e6 },
+      { label:'Gigapascal (GPa)',      factor:1e9 },
+      { label:'N/mm² (= MPa)',        factor:1e6 },
+      { label:'kN/m² (= kPa)',        factor:1000 },
+      { label:'MN/m² (= MPa)',        factor:1e6 },
+      { label:'kgf/cm²',              factor:98066.5 },
+      { label:'kgf/m²',               factor:9.80665 },
+      { label:'tf/m²',                factor:9806.65 },
+      { label:'Bar',                   factor:100000 },
+      { label:'Millibar (mbar)',       factor:100 },
+      { label:'Atmosphere (atm)',      factor:101325 },
+      { label:'psi (lbf/in²)',         factor:6894.757 },
+      { label:'ksi (kip/in²)',         factor:6894757 },
+      { label:'psf (lbf/ft²)',         factor:47.8803 },
+      { label:'mm of Hg (mmHg/Torr)', factor:133.322 },
+      { label:'m of Water',            factor:9806.65 },
+      { label:'ft of Water',           factor:2989.07 },
+      { label:'Custom',               factor:1, custom:true },
+    ],
+    ref: [
+      ['1 MPa','1 N/mm²','1000 kPa','10.197 kgf/cm²'],
+      ['1 kPa','1 kN/m²','1000 Pa','0.145 psi'],
+      ['1 kgf/cm²','98.07 kPa','0.09807 MPa','14.22 psi'],
+      ['1 psi','6.895 kPa','0.006895 MPa','0.0703 kgf/cm²'],
+      ['1 bar','100 kPa','0.1 MPa','14.504 psi'],
+      ['1 atm','101.325 kPa','1.013 bar','14.696 psi'],
+    ],
+    refHead: ['Unit','Value 1','Value 2','Value 3'],
+  },
+
+  moment: {
+    title: '🔧 Bending Moment / Torque',
+    base: 'N·m',
+    refTitle: 'Moment conversions (to N·m)',
+    units: [
+      { label:'N·mm',             factor:0.001 },
+      { label:'N·m',              factor:1 },
+      { label:'kN·m',             factor:1000 },
+      { label:'MN·m',             factor:1e6 },
+      { label:'kgf·m',            factor:9.80665 },
+      { label:'kgf·cm',           factor:0.0980665 },
+      { label:'tf·m',             factor:9806.65 },
+      { label:'lbf·ft',           factor:1.35582 },
+      { label:'lbf·in',           factor:0.112985 },
+      { label:'kip·ft',           factor:1355.82 },
+      { label:'kip·in',           factor:112.985 },
+      { label:'Custom',          factor:1, custom:true },
+    ],
+    ref: [
+      ['1 kN·m','1000 N·m','101.97 kgf·m','737.6 lbf·ft'],
+      ['1 kgf·m','9.807 N·m','0.009807 kN·m'],
+      ['1 lbf·ft','1.356 N·m','0.1383 kgf·m'],
+    ],
+    refHead: ['Unit','Value 1','Value 2','Value 3'],
+  },
+
+  density: {
+    title: '🧱 Density / Unit Weight',
+    base: 'kg/m³',
+    refTitle: 'Density conversions (to kg/m³)',
+    units: [
+      { label:'kg/m³',            factor:1 },
+      { label:'g/cm³',            factor:1000 },
+      { label:'g/L',              factor:1 },
+      { label:'kN/m³',            factor:101.9716 },
+      { label:'t/m³',             factor:1000 },
+      { label:'lb/ft³ (pcf)',     factor:16.01846 },
+      { label:'lb/in³',           factor:27679.9 },
+      { label:'lb/US gal',        factor:119.826 },
+      { label:'oz/in³',           factor:1729.99 },
+      { label:'Custom',          factor:1, custom:true },
+    ],
+    ref: [
+      ['RCC',     '2500 kg/m³','25 kN/m³','156.1 pcf'],
+      ['Steel',   '7850 kg/m³','78.5 kN/m³','490 pcf'],
+      ['Water',   '1000 kg/m³','10 kN/m³','62.4 pcf'],
+      ['Brick',   '1900–2000 kg/m³','19–20 kN/m³'],
+    ],
+    refHead: ['Material','kg/m³','kN/m³','pcf'],
+  },
+
+  speed: {
+    title: '💨 Speed / Velocity / Flow',
+    base: 'm/s',
+    refTitle: 'Speed conversions (to m/s)',
+    units: [
+      { label:'m/s',              factor:1 },
+      { label:'m/min',            factor:0.016667 },
+      { label:'m/hr',             factor:0.000278 },
+      { label:'km/h',             factor:0.277778 },
+      { label:'km/s',             factor:1000 },
+      { label:'ft/s (fps)',       factor:0.3048 },
+      { label:'ft/min',           factor:0.00508 },
+      { label:'mph',              factor:0.44704 },
+      { label:'knot',             factor:0.514444 },
+      { label:'cm/s',             factor:0.01 },
+      { label:'mm/s',             factor:0.001 },
+      { label:'m³/s (cumec)',     factor:1, note:'Flow rate' },
+      { label:'L/s',              factor:0.001, note:'Flow rate' },
+      { label:'L/min',            factor:0.0000167, note:'Flow rate' },
+      { label:'L/hr',             factor:2.778e-7, note:'Flow rate' },
+      { label:'Custom',          factor:1, custom:true },
+    ],
+    ref: [
+      ['1 m/s','3.6 km/h','3.281 ft/s','1.944 knots'],
+      ['1 km/h','0.278 m/s','0.911 ft/s','0.621 mph'],
+      ['1 mph','0.447 m/s','1.609 km/h','1.467 ft/s'],
+    ],
+    refHead: ['Unit','Value 1','Value 2','Value 3'],
+  },
+
+  temperature: {
+    title: '🌡️ Temperature',
+    base: '°C',
+    refTitle: 'Temperature conversions',
+    special: true,
+    units: [
+      { label:'Celsius (°C)',     factor:1 },
+      { label:'Fahrenheit (°F)', factor:1 },
+      { label:'Kelvin (K)',       factor:1 },
+      { label:'Rankine (°R)',     factor:1 },
+      { label:'Custom',          factor:1, custom:true },
+    ],
+    ref: [
+      ['0°C (freezing)','32°F','273.15 K'],
+      ['100°C (boiling)','212°F','373.15 K'],
+      ['37°C (body)','98.6°F','310.15 K'],
+      ['-40°C','−40°F','233.15 K'],
+    ],
+    refHead: ['°C','°F','K'],
+  },
+
+  angle: {
+    title: '📐 Angle',
+    base: 'rad',
+    refTitle: 'Angle conversions (to radian)',
+    units: [
+      { label:'Degree (°)',       factor: Math.PI/180 },
+      { label:'Radian (rad)',     factor:1 },
+      { label:'Gradian (gon)',    factor: Math.PI/200 },
+      { label:'Minute (arcmin)', factor: Math.PI/10800 },
+      { label:'Second (arcsec)', factor: Math.PI/648000 },
+      { label:'Turn (revolution)',factor: 2*Math.PI },
+      { label:'Percent slope (%)',factor: Math.atan(0.01), note:'1% = arctan(0.01)' },
+      { label:'Custom',          factor:1, custom:true },
+    ],
+    ref: [
+      ['1 rad','57.296°','63.662 grad'],
+      ['1°','0.01745 rad','1.1111 grad','60 arcmin'],
+      ['90°','π/2 rad','100 grad'],
+      ['360°','2π rad','400 grad'],
+    ],
+    refHead: ['Unit','rad','°','grad'],
+  },
+
+  energy: {
+    title: '⚡ Energy / Power',
+    base: 'J',
+    refTitle: 'Energy & Power conversions (to Joule / Watt)',
+    units: [
+      { label:'Joule (J)',           factor:1 },
+      { label:'Kilojoule (kJ)',      factor:1000 },
+      { label:'Megajoule (MJ)',      factor:1e6 },
+      { label:'Watt-hour (Wh)',      factor:3600 },
+      { label:'Kilowatt-hour (kWh)', factor:3.6e6 },
+      { label:'Calorie (cal)',        factor:4.184 },
+      { label:'Kilocalorie (kcal)',   factor:4184 },
+      { label:'BTU',                  factor:1055.06 },
+      { label:'ft·lbf',              factor:1.35582 },
+      { label:'Watt (W) [power]',    factor:1, note:'Power unit' },
+      { label:'Kilowatt (kW)',        factor:1000, note:'Power unit' },
+      { label:'Horsepower (hp)',      factor:745.7, note:'Power unit' },
+      { label:'Metric hp (PS)',       factor:735.499, note:'Power unit' },
+      { label:'Custom',             factor:1, custom:true },
+    ],
+    ref: [
+      ['1 kWh','3600 kJ','3.6 MJ','3412 BTU'],
+      ['1 kJ','0.2778 Wh','0.9478 BTU','737.6 ft·lbf'],
+      ['1 hp','745.7 W','0.7457 kW','2544 BTU/hr'],
+      ['1 kW','1000 W','1.341 hp','3412 BTU/hr'],
+    ],
+    refHead: ['Unit','Value 1','Value 2','Value 3'],
+  },
+
+  time: {
+    title: '⏱️ Time',
+    base: 's',
+    refTitle: 'Time conversions (to seconds)',
+    units: [
+      { label:'Nanosecond (ns)',   factor:1e-9 },
+      { label:'Microsecond (µs)', factor:1e-6 },
+      { label:'Millisecond (ms)', factor:0.001 },
+      { label:'Second (s)',        factor:1 },
+      { label:'Minute (min)',      factor:60 },
+      { label:'Hour (hr)',         factor:3600 },
+      { label:'Day',               factor:86400 },
+      { label:'Week',              factor:604800 },
+      { label:'Fortnight',         factor:1209600 },
+      { label:'Month (30 days)',   factor:2592000 },
+      { label:'Year (365 days)',   factor:31536000 },
+      { label:'Custom',           factor:1, custom:true },
+    ],
+    ref: [
+      ['1 day','24 hr','1440 min','86400 s'],
+      ['1 hr','60 min','3600 s'],
+      ['1 week','7 days','168 hr','10080 min'],
+      ['1 year','365 days','8760 hr','525600 min'],
+    ],
+    refHead: ['Unit','Value 1','Value 2','Value 3'],
+  },
+
+  load: {
+    title: '🏗️ Distributed Load',
+    base: 'N/m',
+    refTitle: 'Distributed load conversions (to N/m)',
+    units: [
+      { label:'N/m',           factor:1 },
+      { label:'kN/m',          factor:1000 },
+      { label:'MN/m',          factor:1e6 },
+      { label:'kgf/m',         factor:9.80665 },
+      { label:'tf/m',          factor:9806.65 },
+      { label:'lbf/ft (plf)',  factor:14.5939 },
+      { label:'kip/ft (klf)',  factor:14593.9 },
+      { label:'N/mm',          factor:1000 },
+      { label:'kN/mm',         factor:1e6 },
+      { label:'N/m² (UDL on area → Pa)',factor:1, note:'Pressure' },
+      { label:'kN/m² (UDL on area → kPa)',factor:1000, note:'Pressure' },
+      { label:'Custom',       factor:1, custom:true },
+    ],
+    ref: [
+      ['1 kN/m','1000 N/m','101.97 kgf/m','68.52 lbf/ft'],
+      ['1 tf/m','9806.65 N/m','9.807 kN/m'],
+      ['1 lbf/ft','14.594 N/m','0.01459 kN/m'],
+    ],
+    refHead: ['Unit','Value 1','Value 2','Value 3'],
+  },
+
+  concrete: {
+    title: '🏠 Concrete Mix Ratios',
+    base: 'bags_m3',
+    special: true,
+    units: [],
+    refTitle: 'IS 456 / IS 10262 Mix Design Reference',
+    ref: [
+      ['M10','1:3:6','6 bags/m³','0.60','PCC only'],
+      ['M15','1:2:4','7 bags/m³','0.55','PCC, non-structural'],
+      ['M20','1:1.5:3','8 bags/m³','0.50','RCC slabs, beams (mild)'],
+      ['M25','Design mix','9 bags/m³','0.45','RCC columns, bridges'],
+      ['M30','Design mix','10 bags/m³','0.42','High-strength structures'],
+      ['M35','Design mix','11 bags/m³','0.40','Pre-stressed concrete'],
+      ['M40','Design mix','12 bags/m³','0.38','High-rise buildings'],
+      ['M45','Design mix','13 bags/m³','0.36','Bridges, flyovers'],
+      ['M50','Design mix','14 bags/m³','0.35','Heavy structures'],
+      ['M55','Design mix','15 bags/m³','0.34','Special structures'],
+    ],
+    refHead: ['Grade','Ratio','Bags/m³','w/c','Use Case'],
+  },
+
+};
+
+/* ============================================================
+   STATE
+============================================================ */
+let currentCategory = 'length';
+let convHistory = [];
+
+/* ============================================================
+   INIT
+============================================================ */
+document.addEventListener('DOMContentLoaded', function() {
+  selectCategory('length');
+  // load history
+  try {
+    const h = localStorage.getItem('uc_history');
+    if (h) convHistory = JSON.parse(h);
+  } catch(e){}
+  // theme
+  if (localStorage.getItem('civilcalc_theme') === 'light') {
+    document.body.classList.add('light-mode');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }
+});
+
+/* ============================================================
+   SELECT CATEGORY
+============================================================ */
+function selectCategory(cat) {
+  currentCategory = cat;
+  const catDef = UNIT_CATEGORIES[cat];
+
+  // Update active button
+  document.querySelectorAll('.uc-cat-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.includes(catDef.title) || b.getAttribute('onclick').includes("'"+cat+"'"));
+  });
+
+  // Update title
+  document.getElementById('uc_cat_title').textContent = catDef.title;
+
+  // Build unit dropdowns
+  const fromSel = document.getElementById('uc_from');
+  const toSel   = document.getElementById('uc_to');
+  fromSel.innerHTML = '';
+  toSel.innerHTML   = '';
+
+  if (catDef.special && cat === 'concrete') {
+    // Show reference table only
+    document.getElementById('uc_main_box_inputs')?.style && (document.getElementById('uc_main_box_inputs').style.display='none');
+    document.querySelector('.uc-input-row').style.display = 'none';
+    document.getElementById('uc_result_box').style.display = 'none';
+    document.getElementById('uc_formula').style.display = 'none';
+    document.getElementById('uc_custom_from_row').classList.remove('show');
+    document.getElementById('uc_custom_to_row').classList.remove('show');
+  } else {
+    document.querySelector('.uc-input-row').style.display = '';
+    catDef.units.forEach((u, idx) => {
+      const opt = new Option(u.label + (u.note ? ' †' : ''), idx);
+      fromSel.appendChild(opt.cloneNode(true));
+      toSel.appendChild(opt);
+    });
+    // default: index 0 → 1
+    if (toSel.options.length > 1) toSel.selectedIndex = 1;
+    checkCustom();
+    doConvert();
+  }
+
+  // Update reference table
+  buildRefTable(catDef);
+}
+
+/* ============================================================
+   BUILD REFERENCE TABLE
+============================================================ */
+function buildRefTable(catDef) {
+  document.getElementById('uc_ref_title').textContent = catDef.refTitle || '';
+  const head = document.getElementById('uc_ref_head');
+  const body = document.getElementById('uc_ref_body');
+  head.innerHTML = '';
+  body.innerHTML = '';
+
+  if (!catDef.ref || catDef.ref.length === 0) return;
+
+  (catDef.refHead || []).forEach(h => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    head.appendChild(th);
+  });
+
+  catDef.ref.forEach(row => {
+    const tr = document.createElement('tr');
+    row.forEach(cell => {
+      const td = document.createElement('td');
+      td.textContent = cell || '';
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+}
+
+/* ============================================================
+   CHECK CUSTOM UNIT ROWS
+============================================================ */
+function checkCustom() {
+  const fromSel = document.getElementById('uc_from');
+  const toSel   = document.getElementById('uc_to');
+  const catDef  = UNIT_CATEGORIES[currentCategory];
+  const fromUnit = catDef.units[parseInt(fromSel.value)];
+  const toUnit   = catDef.units[parseInt(toSel.value)];
+
+  document.getElementById('uc_custom_from_row').classList.toggle('show', fromUnit?.custom === true);
+  document.getElementById('uc_custom_to_row').classList.toggle('show', toUnit?.custom === true);
+}
+
+document.getElementById('uc_from').addEventListener('change', checkCustom);
+document.getElementById('uc_to').addEventListener('change', checkCustom);
+
+/* ============================================================
+   MAIN CONVERSION
+============================================================ */
+function doConvert() {
+  checkCustom();
+  const catDef  = UNIT_CATEGORIES[currentCategory];
+  const val     = parseFloat(document.getElementById('uc_from_val').value);
+  const fromIdx = parseInt(document.getElementById('uc_from').value);
+  const toIdx   = parseInt(document.getElementById('uc_to').value);
+
+  if (isNaN(val)) {
+    document.getElementById('uc_result_box').style.display = 'none';
+    document.getElementById('uc_formula').style.display = 'none';
+    return;
+  }
+
+  const fromUnit = catDef.units[fromIdx];
+  const toUnit   = catDef.units[toIdx];
+  if (!fromUnit || !toUnit) return;
+
+  let result;
+  let formula = '';
+  const fromLabel = fromUnit.custom ? (document.getElementById('uc_custom_from_name').value || 'Custom') : fromUnit.label.split(' ')[0];
+  const toLabel   = toUnit.custom   ? (document.getElementById('uc_custom_to_name').value   || 'Custom') : toUnit.label.split(' ')[0];
+
+  // Factor for custom units
+  let fromFactor = fromUnit.custom ? (parseFloat(document.getElementById('uc_custom_from_factor').value) || 1) : fromUnit.factor;
+  let toFactor   = toUnit.custom   ? (parseFloat(document.getElementById('uc_custom_to_factor').value)   || 1) : toUnit.factor;
+
+  if (catDef.special && currentCategory === 'temperature') {
+    result = convertTemp(val, fromUnit.label, toUnit.label);
+    formula = tempFormula(fromUnit.label, toUnit.label);
+  } else {
+    // Convert via SI base
+    const inBase = val * fromFactor;
+    result = inBase / toFactor;
+    const ratio = fromFactor / toFactor;
+    formula = `1 ${fromLabel} = ${fmtNum(ratio)} ${toLabel}`;
+  }
+
+  if (isNaN(result) || !isFinite(result)) {
+    document.getElementById('uc_result_box').style.display = 'none';
+    return;
+  }
+
+  // Display result
+  document.getElementById('uc_to_val').value = fmtNum(result);
+  document.getElementById('uc_result_val').textContent = fmtNum(result) + ' ' + toLabel;
+  document.getElementById('uc_result_label').textContent = `${val} ${fromLabel} = ${fmtNum(result)} ${toLabel}`;
+  document.getElementById('uc_result_box').style.display = 'flex';
+  document.getElementById('uc_formula').style.display = 'flex';
+  document.getElementById('uc_formula_text').textContent = formula;
+
+  // Save to history
+  addHistory(val, fromLabel, result, toLabel);
+}
+
+/* ============================================================
+   TEMPERATURE SPECIAL HANDLING
+============================================================ */
+function convertTemp(val, fromLabel, toLabel) {
+  const from = fromLabel.includes('°C')||fromLabel.includes('Celsius') ? 'C'
+    : fromLabel.includes('°F')||fromLabel.includes('Fahrenheit') ? 'F'
+    : fromLabel.includes('K') ? 'K' : 'R';
+  const to = toLabel.includes('°C')||toLabel.includes('Celsius') ? 'C'
+    : toLabel.includes('°F')||toLabel.includes('Fahrenheit') ? 'F'
+    : toLabel.includes('K') ? 'K' : 'R';
+
+  // Convert to Celsius first
+  let c;
+  if (from==='C') c=val;
+  else if (from==='F') c=(val-32)*5/9;
+  else if (from==='K') c=val-273.15;
+  else if (from==='R') c=(val-491.67)*5/9;
+
+  // From Celsius to target
+  if (to==='C') return c;
+  if (to==='F') return c*9/5+32;
+  if (to==='K') return c+273.15;
+  if (to==='R') return (c+273.15)*9/5;
+  return NaN;
+}
+
+function tempFormula(fromLabel, toLabel) {
+  const from = fromLabel.includes('°C') ? 'C' : fromLabel.includes('°F') ? 'F' : fromLabel.includes('K') ? 'K' : 'R';
+  const to   = toLabel.includes('°C')   ? 'C' : toLabel.includes('°F')   ? 'F' : toLabel.includes('K')   ? 'K' : 'R';
+  const formulas = {
+    CF:'°F = °C × 9/5 + 32', FC:'°C = (°F − 32) × 5/9',
+    CK:'K = °C + 273.15',    KC:'°C = K − 273.15',
+    FK:'K = (°F + 459.67) × 5/9', KF:'°F = K × 9/5 − 459.67',
+    CR:'°R = (°C + 273.15) × 9/5',RC:'°C = °R × 5/9 − 273.15',
+  };
+  return formulas[from+to] || 'Non-linear temperature conversion';
+}
+
+/* ============================================================
+   FORMAT NUMBER  — smart significant figures
+============================================================ */
+function fmtNum(n) {
+  if (n === 0) return '0';
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return n.toExponential(4);
+  if (abs >= 1000) return parseFloat(n.toPrecision(7)).toLocaleString('en-IN', {maximumFractionDigits:4});
+  if (abs >= 1)    return parseFloat(n.toPrecision(7)).toString();
+  if (abs >= 0.001) return parseFloat(n.toPrecision(6)).toString();
+  return n.toExponential(4);
+}
+
+/* ============================================================
+   SWAP UNITS
+============================================================ */
+function swapUnits() {
+  const fromSel = document.getElementById('uc_from');
+  const toSel   = document.getElementById('uc_to');
+  const fromVal = document.getElementById('uc_from_val');
+  const toVal   = document.getElementById('uc_to_val');
+
+  const tmpIdx = fromSel.value;
+  fromSel.value = toSel.value;
+  toSel.value   = tmpIdx;
+
+  // Swap values
+  const tmpV = fromVal.value;
+  fromVal.value = toVal.value;
+  // toVal will be recalculated
+  checkCustom();
+  doConvert();
+}
+
+/* ============================================================
+   COPY RESULT
+============================================================ */
+function copyResult() {
+  const text = document.getElementById('uc_result_label').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy', 1500);
+  });
+}
+
+/* ============================================================
+   HISTORY
+============================================================ */
+function addHistory(val, fromLabel, result, toLabel) {
+  const entry = {
+    from: val, fromLabel, to: fmtNum(result), toLabel,
+    cat: currentCategory,
+    time: new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})
+  };
+  // Avoid duplicate consecutive
+  if (convHistory.length > 0) {
+    const last = convHistory[0];
+    if (last.from===val && last.fromLabel===fromLabel && last.toLabel===toLabel) return;
+  }
+  convHistory.unshift(entry);
+  if (convHistory.length > 30) convHistory.pop();
+  try { localStorage.setItem('uc_history', JSON.stringify(convHistory)); } catch(e){}
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('uc_history_list');
+  if (convHistory.length === 0) {
+    list.innerHTML = '<div style="color:#999;font-size:13px;font-style:italic;">No conversions yet.</div>';
+    return;
+  }
+  list.innerHTML = convHistory.slice(0,15).map((e,i) => `
+    <div class="uc-history-item" onclick="replayHistory(${i})">
+      <div>
+        <span class="uc-history-val">${e.from} ${e.fromLabel}</span>
+        <span class="uc-history-from"> → ${e.to} ${e.toLabel}</span>
+      </div>
+      <div style="font-size:10px;color:#9ca3af;">${e.time}</div>
+    </div>
+  `).join('');
+}
+
+function replayHistory(idx) {
+  const e = convHistory[idx];
+  if (!e) return;
+  selectCategory(e.cat);
+  setTimeout(() => {
+    document.getElementById('uc_from_val').value = e.from;
+    doConvert();
+  }, 50);
+}
+
+function clearHistory() {
+  convHistory = [];
+  localStorage.removeItem('uc_history');
+  renderHistory();
+}
+
+/* ============================================================
+   REFERENCE TAB SWITCH
+============================================================ */
+function switchRefTab(tab) {
+  document.getElementById('ref_quick').style.display  = tab==='quick' ? 'block' : 'none';
+  document.getElementById('ref_history').style.display = tab==='history' ? 'block' : 'none';
+  document.getElementById('reftab_quick').classList.toggle('active', tab==='quick');
+  document.getElementById('reftab_history').classList.toggle('active', tab==='history');
+  if (tab==='history') renderHistory();
+}
+
+/* ============================================================
+   THEME
+============================================================ */
+function toggleTheme() {
+  document.body.classList.toggle('light-mode');
+  const btn = document.getElementById('themeBtn');
+  btn.textContent = document.body.classList.contains('light-mode') ? '🌙' : '☀️';
+  localStorage.setItem('civilcalc_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+}
+</script>
+</body>
+</html>

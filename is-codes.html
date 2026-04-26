@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CivilCalci — IS Codes</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>CivilCalci — Advanced Estimator</h1>
+  <p>Volume &amp; material calculators &bull; steel &amp; BBS generator &bull; cost estimation &bull; PDF report</p>
+</header>
+
+<div class="topnav">
+  <a class="tab-btn" href="index.html">Calculators</a>
+  <a class="tab-btn" href="steel-bbs.html">Steel &amp; BBS</a>
+  <a class="tab-btn" href="mix-design.html">Mix Design</a>
+  <a class="tab-btn" href="unit-converter.html">Unit Converter</a>
+  <a class="tab-btn" href="cost-estimate.html">Cost &amp; Estimate</a>
+  <a class="tab-btn" href="is-codes.html">IS Codes</a>
+</div>
+
+<div class="content">
+
+  <!-- LEFT: IS Codes Reference -->
+  <div class="panel">
+
+    <!-- Main IS Codes Table -->
+    <div class="card">
+      <h3>IS Codes — Civil Engineering Reference</h3>
+      <div class="small muted">Key Indian Standards for structural design, materials, and construction practice.</div>
+      <div style="overflow-x:auto; margin-top:12px;">
+        <table style="min-width:480px; font-size:12px;">
+          <thead>
+            <tr><th>IS Code</th><th>Year</th><th>Title</th><th>Application</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>IS 456</strong></td><td>2000</td><td>Plain &amp; Reinforced Concrete — Code of Practice</td><td>All RCC design</td></tr>
+            <tr><td><strong>IS 10262</strong></td><td>2019</td><td>Concrete Mix Proportioning — Guidelines</td><td>Mix design</td></tr>
+            <tr><td><strong>IS 383</strong></td><td>2016</td><td>Coarse &amp; Fine Aggregate from Natural Sources</td><td>Aggregate quality</td></tr>
+            <tr><td><strong>IS 875 (Pt 1)</strong></td><td>1987</td><td>Dead Loads — Unit Weights</td><td>Load calculation</td></tr>
+            <tr><td><strong>IS 875 (Pt 2)</strong></td><td>1987</td><td>Imposed Loads (Live Loads)</td><td>Load calculation</td></tr>
+            <tr><td><strong>IS 875 (Pt 3)</strong></td><td>2015</td><td>Wind Loads</td><td>Wind analysis</td></tr>
+            <tr><td><strong>IS 1893</strong></td><td>2016</td><td>Earthquake Resistant Design of Structures</td><td>Seismic zones</td></tr>
+            <tr><td><strong>IS 13920</strong></td><td>2016</td><td>Ductile Design &amp; Detailing of RC Structures</td><td>Seismic detailing</td></tr>
+            <tr><td><strong>IS 1786</strong></td><td>2008</td><td>HYSD Bars &amp; Wires for Concrete Reinforcement</td><td>Rebar specs</td></tr>
+            <tr><td><strong>IS 2386</strong></td><td>1963</td><td>Methods of Test for Aggregates for Concrete</td><td>Aggregate testing</td></tr>
+            <tr><td><strong>IS 4031</strong></td><td>1988</td><td>Methods of Physical Tests for Hydraulic Cement</td><td>Cement testing</td></tr>
+            <tr><td><strong>IS 516</strong></td><td>1959</td><td>Method of Tests for Strength of Concrete</td><td>Cube/cylinder tests</td></tr>
+            <tr><td><strong>IS 3370</strong></td><td>2009</td><td>Concrete Structures for Storage of Liquids</td><td>Water tanks</td></tr>
+            <tr><td><strong>IS 800</strong></td><td>2007</td><td>General Construction in Steel — Code of Practice</td><td>Steel structures</td></tr>
+            <tr><td><strong>IS 2911</strong></td><td>2010</td><td>Design &amp; Construction of Pile Foundations</td><td>Pile foundation</td></tr>
+            <tr><td><strong>IS 1080</strong></td><td>1985</td><td>Design &amp; Construction of Shallow Foundations</td><td>Footings, rafts</td></tr>
+            <tr><td><strong>IS 3414</strong></td><td>1968</td><td>Design of Joints in Buildings</td><td>Expansion joints</td></tr>
+            <tr><td><strong>IS 2204</strong></td><td>1962</td><td>Construction of Reinforced Concrete Shell Roofs</td><td>Shell structures</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Exposure Conditions -->
+    <div class="card">
+      <h3>Exposure Conditions &amp; Min Requirements (IS 456 : 2000)</h3>
+      <div style="overflow-x:auto; margin-top:10px;">
+        <table style="min-width:440px; font-size:12px;">
+          <thead>
+            <tr><th>Exposure</th><th>Min Grade</th><th>Min Cover (mm)</th><th>Max w/c</th><th>Min Cement (kg/m³)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Mild</td><td>M20</td><td>20</td><td>0.60</td><td>300</td></tr>
+            <tr><td>Moderate</td><td>M25</td><td>30</td><td>0.50</td><td>300</td></tr>
+            <tr><td>Severe</td><td>M30</td><td>45</td><td>0.45</td><td>320</td></tr>
+            <tr><td>Very Severe</td><td>M35</td><td>50</td><td>0.45</td><td>340</td></tr>
+            <tr><td>Extreme</td><td>M40</td><td>75</td><td>0.40</td><td>360</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Unit Weights Reference -->
+    <div class="card">
+      <h3>Unit Weights of Common Materials (IS 875 Pt 1)</h3>
+      <div style="overflow-x:auto; margin-top:10px;">
+        <table style="min-width:340px; font-size:12px;">
+          <thead>
+            <tr><th>Material</th><th>Unit Weight (kN/m³)</th><th>Unit Weight (kg/m³)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Plain Cement Concrete (PCC)</td><td>24</td><td>2400</td></tr>
+            <tr><td>Reinforced Cement Concrete (RCC)</td><td>25</td><td>2500</td></tr>
+            <tr><td>Structural Steel</td><td>78.5</td><td>7850</td></tr>
+            <tr><td>Brick Masonry</td><td>19–20</td><td>1900–2000</td></tr>
+            <tr><td>AAC Block Masonry</td><td>6–8</td><td>600–800</td></tr>
+            <tr><td>Sand (dry)</td><td>16</td><td>1600</td></tr>
+            <tr><td>Sand (saturated)</td><td>19</td><td>1900</td></tr>
+            <tr><td>Coarse Aggregate</td><td>15–17</td><td>1500–1700</td></tr>
+            <tr><td>Water</td><td>10</td><td>1000</td></tr>
+            <tr><td>Timber (hardwood)</td><td>8–10</td><td>800–1000</td></tr>
+            <tr><td>Glass</td><td>25</td><td>2500</td></tr>
+            <tr><td>Aluminium</td><td>27</td><td>2700</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Seismic Zones -->
+    <div class="card">
+      <h3>Seismic Zones of India (IS 1893 : 2016)</h3>
+      <div style="overflow-x:auto; margin-top:10px;">
+        <table style="min-width:380px; font-size:12px;">
+          <thead>
+            <tr><th>Zone</th><th>Zone Factor (Z)</th><th>Intensity</th><th>Example Cities</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Zone II</td><td>0.10</td><td>Low</td><td>Bangalore, Chennai, Hyderabad</td></tr>
+            <tr><td>Zone III</td><td>0.16</td><td>Moderate</td><td>Mumbai, Pune, Kolkata, Nagpur</td></tr>
+            <tr><td>Zone IV</td><td>0.24</td><td>High</td><td>Delhi, Jammu, Roorkee</td></tr>
+            <tr><td>Zone V</td><td>0.36</td><td>Very High</td><td>Srinagar, Bhuj, NE India</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="small muted" style="margin-top:8px;">Include seismic zone in your design report to justify lateral load calculations.</div>
+    </div>
+
+  </div><!-- end left panel -->
+
+  <!-- RIGHT: Estimate Summary -->
+  <aside class="summary">
+    <div class="card">
+      <h4>Estimate Summary</h4>
+      <div class="small muted">Enter local rates below and add items from calculators.</div>
+
+      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label>Cement (₹/50kg bag)</label><input id="rate_cement" type="number" step="0.01" placeholder="e.g. 420" oninput="syncRateInputs('cement',this.value)"></div>
+        <div><label>Sand (₹/m³)</label><input id="rate_sand" type="number" step="0.01" placeholder="e.g. 1600" oninput="syncRateInputs('sand',this.value)"></div>
+        <div><label>Aggregate (₹/m³)</label><input id="rate_agg" type="number" step="0.01" placeholder="e.g. 2000" oninput="syncRateInputs('agg',this.value)"></div>
+        <div><label>Steel (₹/kg)</label><input id="rate_steel" type="number" step="0.01" placeholder="e.g. 70" oninput="syncRateInputs('steel',this.value)"></div>
+      </div>
+
+      <button class="btn" style="margin-top:10px;" onclick="recomputeEstimate()">Recompute Estimate</button>
+
+      <div class="estimate-table-wrap">
+        <table id="estimate_table">
+          <thead>
+            <tr>
+              <th>#</th><th>Item</th><th>Vol (m³)</th><th>Cement (bags)</th>
+              <th>Sand (m³)</th><th>Agg (m³)</th><th>Steel (kg)</th>
+              <th>Grade</th><th>Cost (₹)</th><th>Del</th>
+            </tr>
+          </thead>
+          <tbody id="estimate_tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="total-line">
+        <div>Total Project Cost</div>
+        <div id="estimate_total">₹ 0</div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" style="flex:1;" onclick="exportPDF()">📄 Export PDF</button>
+        <button class="btn btn-orange" style="flex:1;" onclick="printReport()">🖨 Print</button>
+        <button class="btn btn-red" style="flex:1;" onclick="clearEstimate()">🗑 Clear All</button>
+      </div>
+      <div class="tiny" style="margin-top:8px;">Tip: Your estimate is auto-saved and persists across all pages.</div>
+    </div>
+
+    <div class="card">
+      <h4>IS Codes &amp; Notes</h4>
+      <ul class="is-list">
+        <li><strong>IS 456</strong> : Plain &amp; Reinforced Concrete</li>
+        <li><strong>IS 10262</strong> : Concrete Mix Design</li>
+        <li><strong>IS 383</strong> : Aggregates for Concrete</li>
+        <li><strong>IS 875</strong> : Loads — Dead, Live</li>
+        <li><strong>IS 1893</strong> : Earthquake Resistant Design</li>
+      </ul>
+    </div>
+  </aside>
+
+</div><!-- .content -->
+
+<script src="script.js"></script>
+</body>
+</html>

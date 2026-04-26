@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CivilCalci — Mix Design</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.md-section{margin-top:18px;padding-top:14px;border-top:1px dashed #d1d9e6}
+.md-section-title{font-size:12px;font-weight:700;color:#0b7dda;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+.md-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.md-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.md-field{display:flex;flex-direction:column;gap:4px}
+.md-field label{font-size:12px;color:#444;font-weight:600}
+.md-field input,.md-field select{padding:8px 10px;border-radius:7px;border:1px solid #d1d9e6;font-size:13px;width:100%;box-sizing:border-box;background:#fff}
+.md-field input:focus,.md-field select:focus{outline:2px solid #0b7dda;border-color:#0b7dda}
+.md-optional{background:#f8fafd;border-radius:10px;padding:14px;margin-top:14px}
+.md-optional-title{font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:0;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.md-optional-title::after{content:'▾';font-size:10px;transition:.2s}
+.md-optional-title.open::after{content:'▴'}
+.md-optional-body{display:none;margin-top:12px}
+.md-optional-body.open{display:block}
+.md-result-card{background:linear-gradient(135deg,#f0f7ff,#e8f4ff);border:2px solid #bfdbfe;border-radius:12px;padding:16px;margin-top:14px}
+.md-result-title{font-size:15px;font-weight:800;color:#1e40af;margin-bottom:12px}
+.md-result-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.md-result-item{background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:10px;text-align:center}
+.md-result-item .rv{font-size:18px;font-weight:800;color:#0b7dda}
+.md-result-item .rl{font-size:11px;color:#6b7280;margin-top:2px;line-height:1.3}
+.md-ratio-badge{background:linear-gradient(90deg,#0b7dda,#1d4ed8);color:#fff;border-radius:10px;padding:10px 14px;text-align:center;font-size:18px;font-weight:800;letter-spacing:1px;margin:10px 0}
+.md-warning{background:#fffbeb;border:1px solid #fbbf24;border-radius:8px;padding:8px 12px;font-size:12px;color:#92400e;margin-top:8px}
+.md-info{background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:8px 12px;font-size:12px;color:#14532d;margin-top:8px}
+.md-cost-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid #e9eef6}
+.method-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.method-tab{padding:7px 12px;border-radius:7px;border:1.5px solid #d1d9e6;font-size:12px;font-weight:700;cursor:pointer;background:#f8fafd;color:#374151;transition:all .15s}
+.method-tab.active{background:#0b7dda;color:#fff;border-color:#0b7dda}
+.method-tab:hover:not(.active){border-color:#0b7dda;color:#0b7dda}
+.admix-block{background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;padding:12px;margin-top:10px}
+.toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.toggle-row label{font-size:13px;font-weight:600;color:#374151;margin:0}
+.toggle-switch{position:relative;width:42px;height:22px;cursor:pointer}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#d1d9e6;border-radius:22px;transition:.25s}
+.toggle-slider:before{content:'';position:absolute;width:16px;height:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s}
+.toggle-switch input:checked+.toggle-slider{background:#0b7dda}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.cement-note{display:inline-flex;align-items:center;gap:4px;background:#e0f2fe;border:1px solid #bae6fd;border-radius:6px;padding:3px 8px;font-size:11px;color:#0369a1;font-weight:600;margin-top:4px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CivilCalci — Advanced Estimator</h1>
+  <p>Volume &amp; material calculators &bull; steel &amp; BBS generator &bull; cost estimation &bull; PDF report</p>
+</header>
+
+<div class="topnav">
+  <a class="tab-btn" href="index.html">Calculators</a>
+  <a class="tab-btn" href="steel-bbs.html">Steel &amp; BBS</a>
+  <a class="tab-btn" href="mix-design.html">Mix Design</a>
+  <a class="tab-btn" href="unit-converter.html">Unit Converter</a>
+  <a class="tab-btn" href="cost-estimate.html">Cost &amp; Estimate</a>
+  <a class="tab-btn" href="is-codes.html">IS Codes</a>
+</div>
+
+<div class="content">
+<div class="panel">
+
+<!-- ===================== FULL MIX DESIGN CALCULATOR ===================== -->
+<div class="card">
+  <h3>🧪 Concrete Mix Design Calculator</h3>
+  <div class="small muted">Full design as per IS 10262 : 2019, ACI 211.1, Maximum Density &amp; Fineness Modulus methods.</div>
+
+  <!-- METHOD -->
+  <div class="md-section">
+    <div class="md-section-title">Design Method</div>
+    <div class="method-tabs">
+      <div class="method-tab active" onclick="mdSelectMethod('IS')" id="mth-IS">IS 10262 (Indian Std)</div>
+      <div class="method-tab" onclick="mdSelectMethod('ACI')" id="mth-ACI">ACI 211.1 (American)</div>
+      <div class="method-tab" onclick="mdSelectMethod('MDD')" id="mth-MDD">Maximum Density</div>
+      <div class="method-tab" onclick="mdSelectMethod('FM')" id="mth-FM">Fineness Modulus</div>
+    </div>
+    <div id="md_method_desc" class="md-info" style="margin-top:0;">
+      <strong>IS 10262 : 2019</strong> — Indian Standard method using target strength (fck + 1.65σ), w/c ratio from IS tables, water content from slump &amp; aggregate size, and IS aggregate proportioning charts. Recommended for Indian construction.
+    </div>
+  </div>
+
+  <!-- CEMENT -->
+  <div class="md-section">
+    <div class="md-section-title">Cement Details</div>
+    <div class="md-grid-2">
+      <div class="md-field">
+        <label>Cement Company</label>
+        <select id="md_cement_company" onchange="mdOnCementCompany()">
+          <option value="">-- Select Company --</option>
+          <option>UltraTech Cement</option>
+          <option>ACC Cement</option>
+          <option>Ambuja Cement</option>
+          <option>Shree Cement</option>
+          <option>Dalmia Bharat Cement</option>
+          <option>India Cements</option>
+          <option>JK Cement</option>
+          <option>Birla Corporation</option>
+          <option>Ramco Cements</option>
+          <option>HeidelbergCement India</option>
+          <option>Nuvoco Vistas (Lafarge)</option>
+          <option>Orient Cement</option>
+          <option>Prism Cement</option>
+          <option>Sanghi Cement</option>
+          <option>My Home Industries</option>
+          <option value="custom">Other / Custom</option>
+        </select>
+      </div>
+      <div class="md-field">
+        <label>Product / Brand Name</label>
+        <select id="md_cement_product"><option value="">-- Select Company First --</option></select>
+      </div>
+    </div>
+    <div id="md_cement_custom_row" style="display:none;margin-top:8px;" class="md-grid-2">
+      <div class="md-field">
+        <label>Custom Company Name</label>
+        <input id="md_cement_company_txt" type="text" placeholder="e.g. Local Cement Ltd">
+      </div>
+      <div class="md-field">
+        <label>Custom Product Name</label>
+        <input id="md_cement_product_txt" type="text" placeholder="e.g. Super OPC 53">
+      </div>
+    </div>
+    <div class="md-grid-3" style="margin-top:10px;">
+      <div class="md-field">
+        <label>Cement Type</label>
+        <select id="md_cement_type" onchange="mdOnCementType()">
+          <option value="OPC33">OPC 33 Grade</option>
+          <option value="OPC43">OPC 43 Grade</option>
+          <option value="OPC53" selected>OPC 53 Grade</option>
+          <option value="PPC">PPC (Fly Ash)</option>
+          <option value="PSC">PSC (Slag)</option>
+          <option value="SRC">SRC (Sulphate Resist.)</option>
+          <option value="RHC">RHC (Rapid Hardening)</option>
+          <option value="LHC">LHC (Low Heat)</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="md-field">
+        <label>Cement Grade (MPa)</label>
+        <select id="md_cement_grade_mpa" onchange="mdOnCementGrade()">
+          <option value="33">33 MPa</option>
+          <option value="43">43 MPa</option>
+          <option value="53" selected>53 MPa</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="md-field">
+        <label>Bag Weight (kg)</label>
+        <select id="md_bag_wt" onchange="mdOnBagWt()">
+          <option value="50" selected>50 kg</option>
+          <option value="25">25 kg</option>
+          <option value="10">10 kg</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+    </div>
+    <div id="md_cement_extras_row" style="display:none;margin-top:8px;" class="md-grid-3">
+      <div class="md-field" id="md_grade_custom_wrap" style="display:none;">
+        <label>Custom Grade (MPa)</label>
+        <input id="md_cement_grade_custom" type="number" placeholder="e.g. 45" step="1" min="20" max="80">
+      </div>
+      <div class="md-field" id="md_bag_custom_wrap" style="display:none;">
+        <label>Custom Bag Wt (kg)</label>
+        <input id="md_bag_wt_custom" type="number" placeholder="e.g. 40" step="1" min="1" max="100">
+      </div>
+    </div>
+    <div id="md_cement_note" class="cement-note" style="display:none;">ℹ️ <span id="md_cement_note_txt"></span></div>
+  </div>
+
+  <!-- MANDATORY INPUTS -->
+  <div class="md-section">
+    <div class="md-section-title">① Mandatory Inputs</div>
+    <div class="md-grid-2">
+      <div class="md-field">
+        <label>Grade of Concrete</label>
+        <select id="md_grade" onchange="mdOnGrade()">
+          <option>M10</option><option>M15</option><option>M20</option>
+          <option selected>M25</option><option>M30</option><option>M35</option>
+          <option>M40</option><option>M45</option><option>M50</option><option>M55</option>
+          <option value="custom">Custom fck</option>
+        </select>
+      </div>
+      <div class="md-field" id="md_custom_grade_row" style="display:none;">
+        <label>Custom fck (MPa)</label>
+        <input id="md_custom_fck" type="number" placeholder="e.g. 60" step="1" min="5" max="120">
+      </div>
+      <div class="md-field">
+        <label>Exposure Condition (IS 456)</label>
+        <select id="md_exposure">
+          <option value="mild">Mild (cover 20 mm)</option>
+          <option value="moderate" selected>Moderate (cover 30 mm)</option>
+          <option value="severe">Severe (cover 45 mm)</option>
+          <option value="very_severe">Very Severe (cover 50 mm)</option>
+          <option value="extreme">Extreme (cover 75 mm)</option>
+        </select>
+      </div>
+    </div>
+    <div class="md-grid-2" style="margin-top:10px;">
+      <div class="md-field">
+        <label>Workability / Slump</label>
+        <select id="md_slump_preset" onchange="mdOnSlumpPreset()">
+          <option value="25">Very Low — 25 mm (Stiff/Roads)</option>
+          <option value="50">Low — 50 mm (Pavements)</option>
+          <option value="75" selected>Medium — 75 mm (Beams/Columns)</option>
+          <option value="100">High — 100 mm (Slabs/Walls)</option>
+          <option value="125">Very High — 125 mm (Pumped)</option>
+          <option value="150">Flow — 150 mm (SCC)</option>
+          <option value="custom">Custom (enter mm below)</option>
+        </select>
+      </div>
+      <div class="md-field">
+        <label>Slump (mm)</label>
+        <input id="md_slump" type="number" value="75" step="5" min="0" max="200">
+      </div>
+    </div>
+    <div class="md-grid-3" style="margin-top:10px;">
+      <div class="md-field">
+        <label>Max Agg. Size</label>
+        <select id="md_agg_size" onchange="mdOnAggSize()">
+          <option value="10">10 mm</option>
+          <option value="20" selected>20 mm</option>
+          <option value="40">40 mm</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="md-field">
+        <label>Aggregate Type</label>
+        <select id="md_agg_type">
+          <option value="angular" selected>Angular (Crushed)</option>
+          <option value="subangular">Sub-angular</option>
+          <option value="rounded">Rounded (River)</option>
+        </select>
+      </div>
+      <div class="md-field">
+        <label>Sand Zone (IS 383)</label>
+        <select id="md_sand_zone">
+          <option value="1">Zone I (Coarse)</option>
+          <option value="2" selected>Zone II</option>
+          <option value="3">Zone III</option>
+          <option value="4">Zone IV (Fine)</option>
+        </select>
+      </div>
+    </div>
+    <div id="md_agg_custom_row" style="display:none;margin-top:8px;" class="md-field">
+      <label>Custom Max Agg. Size (mm)</label>
+      <input id="md_agg_size_custom" type="number" placeholder="e.g. 25" step="1" min="5" max="80">
+    </div>
+  </div>
+
+  <!-- ADMIXTURE -->
+  <div class="md-section">
+    <div class="md-section-title">② Admixture</div>
+    <div class="toggle-row">
+      <label class="toggle-switch">
+        <input type="checkbox" id="md_admix_used" onchange="mdToggleAdmixture()">
+        <span class="toggle-slider"></span>
+      </label>
+      <label for="md_admix_used">Use Admixture?</label>
+    </div>
+    <div id="md_admix_block" class="admix-block" style="display:none;">
+      <div class="md-grid-2">
+        <div class="md-field">
+          <label>Admixture Company</label>
+          <select id="md_admix_company" onchange="mdOnAdmixCompany()">
+            <option value="">-- Select --</option>
+            <option>BASF MasterGlenium</option>
+            <option>Sika ViscoCrete</option>
+            <option>Fosroc Conplast</option>
+            <option>CICO Technologies</option>
+            <option>Pidilite Dr. Fixit</option>
+            <option>Chryso India</option>
+            <option>GCP Applied Technologies</option>
+            <option>UltraTech Admixtures</option>
+            <option>Sobha Chemicals</option>
+            <option>W. R. Grace</option>
+            <option value="custom">Other / Custom</option>
+          </select>
+        </div>
+        <div class="md-field">
+          <label>Product</label>
+          <select id="md_admix_product"><option value="">-- Select Company First --</option></select>
+        </div>
+      </div>
+      <div id="md_admix_custom_row" style="display:none;margin-top:8px;" class="md-grid-2">
+        <div class="md-field">
+          <label>Custom Admixture Name</label>
+          <input id="md_admix_custom_name" type="text" placeholder="Product name">
+        </div>
+        <div class="md-field">
+          <label>Type / Category</label>
+          <input id="md_admix_custom_type" type="text" placeholder="e.g. Superplasticiser">
+        </div>
+      </div>
+      <div class="md-grid-3" style="margin-top:10px;">
+        <div class="md-field">
+          <label>Type</label>
+          <select id="md_admix_type">
+            <option value="SP">Superplasticiser (SP)</option>
+            <option value="HRWR">High-Range Water Reducer</option>
+            <option value="WRA">Water Reducer (WRA)</option>
+            <option value="ACC">Accelerator</option>
+            <option value="RET">Retarder</option>
+            <option value="AEA">Air Entraining (AEA)</option>
+            <option value="VMA">Viscosity Modifier (VMA)</option>
+          </select>
+        </div>
+        <div class="md-field">
+          <label>Dosage (% of cement wt)</label>
+          <input id="md_admix_dosage" type="number" placeholder="e.g. 0.8" step="0.05" min="0.1" max="5" value="0.8">
+        </div>
+        <div class="md-field">
+          <label>Water Reduction (%)</label>
+          <input id="md_admix_water_red" type="number" placeholder="e.g. 20" step="1" min="0" max="40" value="20">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADVANCED OPTIONAL -->
+  <div class="md-section">
+    <div class="md-optional">
+      <div class="md-optional-title" id="md_adv_toggle" onclick="mdToggleAdvanced()">③ Advanced Inputs (Optional — click to expand)</div>
+      <div class="md-optional-body" id="md_adv_body">
+        <div class="md-grid-3">
+          <div class="md-field">
+            <label>Sp. Gravity — Cement</label>
+            <input id="md_sg_cement" type="number" value="3.15" step="0.01" min="2.8" max="3.5">
+          </div>
+          <div class="md-field">
+            <label>Sp. Gravity — Fine Agg.</label>
+            <input id="md_sg_fa" type="number" value="2.65" step="0.01" min="2.0" max="3.5">
+          </div>
+          <div class="md-field">
+            <label>Sp. Gravity — Coarse Agg.</label>
+            <input id="md_sg_ca" type="number" value="2.70" step="0.01" min="2.0" max="3.5">
+          </div>
+        </div>
+        <div class="md-grid-2" style="margin-top:10px;">
+          <div class="md-field">
+            <label>Water Absorption — FA (%)</label>
+            <input id="md_wa_fa" type="number" value="1.0" step="0.1" min="0" max="10">
+          </div>
+          <div class="md-field">
+            <label>Water Absorption — CA (%)</label>
+            <input id="md_wa_ca" type="number" value="0.5" step="0.1" min="0" max="10">
+          </div>
+        </div>
+        <div class="md-grid-2" style="margin-top:10px;">
+          <div class="md-field">
+            <label>Moisture Content — FA (%)</label>
+            <input id="md_mc_fa" type="number" value="2.0" step="0.1" min="0" max="15">
+          </div>
+          <div class="md-field">
+            <label>Moisture Content — CA (%)</label>
+            <input id="md_mc_ca" type="number" value="0.5" step="0.1" min="0" max="10">
+          </div>
+        </div>
+        <div class="md-grid-2" style="margin-top:10px;">
+          <div class="md-field">
+            <label>Standard Deviation (σ)</label>
+            <select id="md_sd_type" onchange="mdOnSDType()">
+              <option value="auto" selected>Auto (IS 10262 Table)</option>
+              <option value="manual">Manual Input</option>
+            </select>
+          </div>
+          <div class="md-field" id="md_sd_manual_row" style="display:none;">
+            <label>σ Value (MPa)</label>
+            <input id="md_sd_val" type="number" value="4.0" step="0.5" min="1" max="12">
+          </div>
+        </div>
+        <div class="md-grid-2" style="margin-top:10px;">
+          <div class="md-field">
+            <label>Fineness Modulus of Sand</label>
+            <input id="md_fm_sand" type="number" value="2.60" step="0.05" min="1.5" max="3.5" placeholder="2.4–3.0">
+          </div>
+          <div class="md-field">
+            <label>Bulk Density of CA (kg/m³)</label>
+            <input id="md_bulk_ca" type="number" value="1600" step="10" min="1000" max="2200" placeholder="1400–1800">
+          </div>
+        </div>
+        <!-- Material Rates for Cost -->
+        <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #d1d9e6;">
+          <div class="md-section-title" style="font-size:11px;">Local Material Rates (for cost estimate output)</div>
+          <div class="md-grid-2">
+            <div class="md-field">
+              <label>Cement (₹ / bag)</label>
+              <input id="md_rate_cement" type="number" placeholder="e.g. 420" step="1" min="0">
+            </div>
+            <div class="md-field">
+              <label>Fine Aggregate (₹ / m³)</label>
+              <input id="md_rate_fa" type="number" placeholder="e.g. 1600" step="1" min="0">
+            </div>
+          </div>
+          <div class="md-grid-2" style="margin-top:8px;">
+            <div class="md-field">
+              <label>Coarse Aggregate (₹ / m³)</label>
+              <input id="md_rate_ca" type="number" placeholder="e.g. 1800" step="1" min="0">
+            </div>
+            <div class="md-field">
+              <label>Water (₹ / KL) <em style="font-weight:400;color:#999;">(opt)</em></label>
+              <input id="md_rate_water" type="number" placeholder="e.g. 50" step="1" min="0">
+            </div>
+          </div>
+          <div style="margin-top:8px;" class="md-field">
+            <label>Admixture (₹ / litre) <em style="font-weight:400;color:#999;">(opt)</em></label>
+            <input id="md_rate_admix" type="number" placeholder="e.g. 120" step="1" min="0">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUTTONS -->
+  <div style="margin-top:16px;display:flex;gap:10px;">
+    <button class="btn" style="flex:2;" onclick="calcMixDesign()">✅ Calculate Mix Design</button>
+    <button class="btn btn-orange" style="flex:1;" onclick="mdReset()">↺ Reset</button>
+  </div>
+
+  <!-- OUTPUT -->
+  <div id="md_output" style="display:none;margin-top:16px;"></div>
+</div>
+
+<!-- QUICK VIEW -->
+<div class="card">
+  <h3>Mix Quick Reference</h3>
+  <div class="small muted">IS 10262 nominal quantities per m³. For structural work verify with lab mix design.</div>
+  <div class="row" style="margin-top:12px;">
+    <div class="col">
+      <label>Select Grade</label>
+      <select id="mix_grade">
+        <option>M10</option><option>M15</option><option selected>M20</option>
+        <option>M25</option><option>M30</option><option>M35</option>
+        <option>M40</option><option>M45</option><option>M50</option><option>M55</option>
+      </select>
+    </div>
+    <div class="col">
+      <label>Volume (m³)</label>
+      <input id="mix_vol" type="number" min="0" step="0.01" placeholder="e.g. 1.00" value="1">
+    </div>
+  </div>
+  <button class="btn" style="margin-top:12px;" onclick="calcMixQuick()">Compute Mix Materials</button>
+  <div id="mix_out" style="display:none; margin-top:14px;"></div>
+</div>
+
+<!-- MIX RATIO TABLE -->
+<div class="card">
+  <h3>Mix Ratio Reference Table</h3>
+  <div class="small muted">Nominal &amp; design mix proportions — IS 456 &amp; IS 10262. M10–M20 are nominal; M25+ are design mixes.</div>
+  <div style="overflow-x:auto; margin-top:10px;">
+    <table style="min-width:460px; font-size:12px;">
+      <thead>
+        <tr><th>Grade</th><th>Type</th><th>C : S : A Ratio</th><th>Bags/m³</th><th>w/c</th><th>fck (MPa)</th><th>Use Case</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>M10</td><td>Nominal</td><td>1 : 3 : 6</td><td>6</td><td>0.60</td><td>10</td><td>PCC, levelling</td></tr>
+        <tr><td>M15</td><td>Nominal</td><td>1 : 2 : 4</td><td>7</td><td>0.55</td><td>15</td><td>PCC, non-structural</td></tr>
+        <tr><td>M20</td><td>Nominal</td><td>1 : 1.5 : 3</td><td>8</td><td>0.50</td><td>20</td><td>RCC slabs, beams (mild)</td></tr>
+        <tr style="background:#fff8e1;"><td><strong>M25</strong></td><td>Design</td><td>Design Mix</td><td>9</td><td>0.45</td><td>25</td><td>RCC columns, bridges</td></tr>
+        <tr style="background:#fff8e1;"><td><strong>M30</strong></td><td>Design</td><td>Design Mix</td><td>10</td><td>0.42</td><td>30</td><td>High-strength structures</td></tr>
+        <tr style="background:#fff8e1;"><td><strong>M35</strong></td><td>Design</td><td>Design Mix</td><td>11</td><td>0.40</td><td>35</td><td>Pre-stressed concrete</td></tr>
+        <tr style="background:#fff8e1;"><td><strong>M40</strong></td><td>Design</td><td>Design Mix</td><td>12</td><td>0.38</td><td>40</td><td>High-rise buildings</td></tr>
+        <tr style="background:#fff8e1;"><td><strong>M45</strong></td><td>Design</td><td>Design Mix</td><td>13</td><td>0.36</td><td>45</td><td>Bridges, flyovers</td></tr>
+        <tr style="background:#fff8e1;"><td><strong>M50</strong></td><td>Design</td><td>Design Mix</td><td>14</td><td>0.35</td><td>50</td><td>Heavy structures</td></tr>
+        <tr style="background:#fff8e1;"><td><strong>M55</strong></td><td>Design</td><td>Design Mix</td><td>15</td><td>0.34</td><td>55</td><td>Special structures</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="md-warning" style="margin-top:10px;">⚠ M25 &amp; above must always be Design Mix as per IS 456 Cl. 9.1. Nominal mix NOT permitted for these grades.</div>
+</div>
+
+<!-- EXPOSURE TABLE -->
+<div class="card">
+  <h3>Exposure Conditions (IS 456 : 2000)</h3>
+  <div class="small muted">Minimum concrete grade and cover based on exposure class.</div>
+  <div style="overflow-x:auto; margin-top:10px;">
+    <table style="min-width:400px; font-size:12px;">
+      <thead>
+        <tr><th>Exposure</th><th>Min Grade</th><th>Min Cover (mm)</th><th>Max w/c</th><th>Min Cement (kg/m³)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Mild</td><td>M20</td><td>20</td><td>0.60</td><td>300</td></tr>
+        <tr><td>Moderate</td><td>M25</td><td>30</td><td>0.50</td><td>300</td></tr>
+        <tr><td>Severe</td><td>M30</td><td>45</td><td>0.45</td><td>320</td></tr>
+        <tr><td>Very Severe</td><td>M35</td><td>50</td><td>0.45</td><td>340</td></tr>
+        <tr><td>Extreme</td><td>M40</td><td>75</td><td>0.40</td><td>360</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- end panel -->
+
+<!-- RIGHT: Estimate Summary -->
+<aside class="summary">
+  <div class="card">
+    <h4>Estimate Summary</h4>
+    <div class="small muted">Enter local rates below and add items from calculators.</div>
+    <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div><label>Cement (₹/50kg bag)</label><input id="rate_cement" type="number" step="0.01" placeholder="e.g. 420" oninput="syncRateInputs('cement',this.value)"></div>
+      <div><label>Sand (₹/m³)</label><input id="rate_sand" type="number" step="0.01" placeholder="e.g. 1600" oninput="syncRateInputs('sand',this.value)"></div>
+      <div><label>Aggregate (₹/m³)</label><input id="rate_agg" type="number" step="0.01" placeholder="e.g. 2000" oninput="syncRateInputs('agg',this.value)"></div>
+      <div><label>Steel (₹/kg)</label><input id="rate_steel" type="number" step="0.01" placeholder="e.g. 70" oninput="syncRateInputs('steel',this.value)"></div>
+    </div>
+    <button class="btn" style="margin-top:10px;" onclick="recomputeEstimate()">Recompute Estimate</button>
+    <div class="estimate-table-wrap">
+      <table id="estimate_table">
+        <thead>
+          <tr>
+            <th>#</th><th>Item</th><th>Vol (m³)</th><th>Cement (bags)</th>
+            <th>Sand (m³)</th><th>Agg (m³)</th><th>Steel (kg)</th>
+            <th>Grade</th><th>Cost (₹)</th><th>Del</th>
+          </tr>
+        </thead>
+        <tbody id="estimate_tbody"></tbody>
+      </table>
+    </div>
+    <div class="total-line">
+      <div>Total Project Cost</div>
+      <div id="estimate_total">₹ 0</div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn" style="flex:1;" onclick="exportPDF()">📄 Export PDF</button>
+      <button class="btn btn-orange" style="flex:1;" onclick="printReport()">🖨 Print</button>
+      <button class="btn btn-red" style="flex:1;" onclick="clearEstimate()">🗑 Clear All</button>
+    </div>
+    <div class="tiny" style="margin-top:8px;">Tip: Your estimate is auto-saved and persists across all pages.</div>
+  </div>
+  <div class="card">
+    <h4>IS Codes &amp; Notes</h4>
+    <ul class="is-list">
+      <li><strong>IS 456</strong> : Plain &amp; Reinforced Concrete</li>
+      <li><strong>IS 10262</strong> : Concrete Mix Design</li>
+      <li><strong>IS 383</strong> : Aggregates for Concrete</li>
+      <li><strong>IS 875</strong> : Loads — Dead, Live</li>
+      <li><strong>IS 1893</strong> : Earthquake Resistant Design</li>
+    </ul>
+  </div>
+</aside>
+
+</div><!-- .content -->
+
+<script src="script.js"></script>
+<script src="mix-design.js"></script>
+</body>
+</html>

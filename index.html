@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CivilCalci — Calculators</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+/* ===== ELEMENT CALCULATOR ENHANCEMENTS ===== */
+.shape-selector { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+.shape-btn {
+  padding:5px 10px; border-radius:6px; border:1.5px solid #d1d9e6;
+  font-size:11px; font-weight:700; cursor:pointer; background:#f8fafd;
+  color:#374151; transition:all .15s; white-space:nowrap;
+}
+.shape-btn.active { background:#0b7dda; color:#fff; border-color:#0b7dda; }
+.shape-btn:hover:not(.active) { border-color:#0b7dda; color:#0b7dda; }
+
+.visual-canvas-wrap {
+  background:#0d1117; border-radius:10px; padding:10px;
+  display:flex; align-items:center; justify-content:center;
+  min-height:140px; margin:10px 0;
+}
+.visual-canvas-wrap canvas { display:block; }
+
+.mix-info-row {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:8px 0;
+}
+.mix-info-box {
+  background:#f0f7ff; border:1px solid #bfdbfe; border-radius:8px;
+  padding:8px; text-align:center;
+}
+.mix-info-box .mv { font-size:15px; font-weight:800; color:#0b7dda; }
+.mix-info-box .ml { font-size:10px; color:#6b7280; margin-top:2px; }
+
+.wc-row {
+  display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; margin:6px 0;
+}
+.wc-box {
+  background:#f8fafd; border:1px solid #e5e7eb; border-radius:7px;
+  padding:7px; text-align:center; font-size:11px;
+}
+.wc-box .wv { font-size:13px; font-weight:800; color:#374151; }
+.wc-box .wl { font-size:10px; color:#9ca3af; margin-top:1px; }
+
+/* Staircase section */
+.stair-type-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:8px 0; }
+.stair-type-btn {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:8px 4px; border-radius:8px; border:1.5px solid #d1d9e6;
+  cursor:pointer; background:#f8fafd; transition:all .15s; text-align:center;
+}
+.stair-type-btn svg { width:48px; height:32px; }
+.stair-type-btn span { font-size:10px; font-weight:700; color:#374151; }
+.stair-type-btn.active { background:#0b7dda22; border-color:#0b7dda; }
+.stair-type-btn.active span { color:#0b7dda; }
+
+/* Load Calculator */
+.load-section { background:#f8fafd; border-radius:8px; padding:12px; margin:8px 0; border:1px solid #e5e7eb; }
+.load-section-title { font-size:12px; font-weight:700; color:#0b7dda; margin-bottom:8px; text-transform:uppercase; }
+
+/* Labour */
+.labour-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0; }
+
+/* Project info */
+.project-info-bar {
+  background:#fff; border-radius:10px; padding:12px 16px;
+  margin:0 18px 12px; box-shadow:0 2px 10px rgba(2,6,23,0.3);
+  display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px;
+  align-items:end;
+}
+@media(max-width:900px){ .project-info-bar { grid-template-columns:1fr 1fr; } }
+@media(max-width:600px){ .project-info-bar { grid-template-columns:1fr; } }
+.project-info-bar label { font-size:11px; color:#555; font-weight:600; display:block; margin-bottom:3px; }
+.project-info-bar input { padding:7px 9px; border-radius:7px; border:1px solid #e5e7eb; font-size:13px; width:100%; box-sizing:border-box; }
+
+/* Multi-qty */
+.qty-row { display:flex; align-items:center; gap:8px; margin-top:6px; }
+.qty-row label { font-size:12px; color:#555; white-space:nowrap; }
+.qty-row input { width:70px; }
+
+/* Notes column */
+.notes-input { width:100%; font-size:11px; padding:4px 6px; border-radius:5px; border:1px solid #e5e7eb; box-sizing:border-box; }
+
+/* dark/light toggle */
+.theme-toggle {
+  position:fixed; bottom:20px; right:20px; z-index:999;
+  background:#0b7dda; color:#fff; border:none; border-radius:50%;
+  width:44px; height:44px; font-size:18px; cursor:pointer;
+  box-shadow:0 4px 14px rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center;
+}
+
+/* Save/Load */
+.save-load-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+.btn-sm { padding:7px 11px; font-size:12px; border-radius:7px; border:none; cursor:pointer; font-weight:700; width:auto; }
+.btn-sm-blue { background:#0b7dda; color:#fff; }
+.btn-sm-green { background:#16a34a; color:#fff; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CivilCalci — Advanced Estimator</h1>
+  <p>Volume &amp; material calculators &bull; steel &amp; BBS generator &bull; cost estimation &bull; PDF report</p>
+</header>
+
+<div class="topnav">
+  <a class="tab-btn" href="index.html">Calculators</a>
+  <a class="tab-btn" href="steel-bbs.html">Steel &amp; BBS</a>
+  <a class="tab-btn" href="mix-design.html">Mix Design</a>
+  <a class="tab-btn" href="unit-converter.html">Unit Converter</a>
+  <a class="tab-btn" href="cost-estimate.html">Cost &amp; Estimate</a>
+  <a class="tab-btn" href="staircase.html">Staircase</a>
+  <a class="tab-btn" href="load-calc.html">Load Calc</a>
+  <a class="tab-btn" href="is-codes.html">IS Codes</a>
+</div>
+
+<!-- Project Info Bar -->
+<div class="project-info-bar" id="projectInfoBar">
+  <div>
+    <label>Project Name</label>
+    <input type="text" id="proj_name" placeholder="e.g. G+2 Residence, Plot 12">
+  </div>
+  <div>
+    <label>Engineer / Prepared By</label>
+    <input type="text" id="proj_engineer" placeholder="e.g. Er. A. Sharma">
+  </div>
+  <div>
+    <label>Client Name</label>
+    <input type="text" id="proj_client" placeholder="e.g. Mr. Rajesh Patil">
+  </div>
+  <div>
+    <button class="btn btn-sm btn-sm-blue" onclick="saveProjectInfo()" style="white-space:nowrap;">💾 Save Info</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- LEFT: Concrete Element Calculators -->
+  <div class="panel">
+    <div class="card">
+      <h3>Concrete Element Calculators</h3>
+      <div class="muted small">Select element type, choose shape, enter dimensions and press <span class="badge">Calculate &amp; Add</span>.</div>
+
+      <!-- ===== SLAB ===== -->
+      <div style="margin-top:14px;">
+        <strong>🔷 Slab</strong>
+        <div class="shape-selector" id="slab_shapes">
+          <button class="shape-btn active" onclick="setShape('slab','simple')" data-shape="simple">Simple Slab</button>
+          <button class="shape-btn" onclick="setShape('slab','slope')" data-shape="slope">Slope Slab</button>
+        </div>
+        <div class="visual-canvas-wrap">
+          <canvas id="slab_canvas" width="500" height="220"></canvas>
+        </div>
+        <div id="slab_inputs">
+          <div class="row" style="margin-top:8px;">
+            <div class="col"><label>Length (m)</label><input id="slab_len" type="number" min="0" step="0.01" placeholder="e.g. 10" oninput="updateVisual('slab')"></div>
+            <div class="col"><label>Width (m)</label><input id="slab_wid" type="number" min="0" step="0.01" placeholder="e.g. 5" oninput="updateVisual('slab')"></div>
+            <div class="col"><label>Thickness (m)</label><input id="slab_thk" type="number" min="0" step="0.01" placeholder="e.g. 0.15" oninput="updateVisual('slab')"></div>
+          </div>
+          <div id="slab_slope_extra" style="display:none;">
+            <div class="row" style="margin-top:8px;">
+              <div class="col"><label>Rise (m)</label><input id="slab_rise" type="number" min="0" step="0.01" placeholder="e.g. 1.5" oninput="updateVisual('slab')"></div>
+            </div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <div class="col">
+            <label>Mix Grade</label>
+            <div style="display:flex;gap:6px;">
+              <select id="slab_grade" style="flex:1;" onchange="updateMixInfo('slab')">
+                <option>M10</option><option>M15</option><option selected>M20</option>
+                <option>M25</option><option>M30</option><option>M35</option>
+                <option>M40</option><option>M45</option><option>M50</option><option>M55</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+          </div>
+          <div class="col" style="justify-content:flex-end;">
+            <button class="btn" style="margin-top:18px;" onclick="calcElement('slab')">Calculate &amp; Add</button>
+          </div>
+        </div>
+        <div id="slab_custom_grade" style="display:none; margin-top:6px;">
+          <label style="font-size:12px;">Custom fck (MPa)</label>
+          <input type="number" id="slab_custom_fck" placeholder="e.g. 60">
+        </div>
+        <!-- Mix Info -->
+        <div class="mix-info-row" id="slab_mix_info" style="margin-top:8px;">
+          <div class="mix-info-box"><div class="mv" id="si_cement">8</div><div class="ml">Cement Bags/m³</div></div>
+          <div class="mix-info-box"><div class="mv" id="si_ratio">1:1.5:3</div><div class="ml">C:S:A Ratio</div></div>
+          <div class="mix-info-box"><div class="mv" id="si_wc">0.50</div><div class="ml">w/c Ratio</div></div>
+        </div>
+        <div class="wc-row" id="slab_wc_row">
+          <div class="wc-box"><div class="wv" id="si_water">186</div><div class="wl">Water (L/m³)</div></div>
+          <div class="wc-box"><div class="wv" id="si_admix">0.01</div><div class="wl">Admixture %</div></div>
+          <div class="wc-box"><div class="wv">1</div><div class="wl">No. of Units</div></div>
+          <div class="wc-box"><div class="wv">1.55</div><div class="wl">Dry Volume</div></div>
+        </div>
+        <div class="qty-row">
+          <label>Qty (nos):</label>
+          <input id="slab_qty" type="number" value="1" min="1" step="1" style="width:70px;">
+          <label style="margin-left:8px;">Notes:</label>
+          <input id="slab_notes" type="text" placeholder="Remarks..." style="flex:1;">
+        </div>
+        <div id="slab_out" class="result-block" style="margin-top:10px;display:none;"></div>
+      </div>
+
+      <hr class="dashed">
+
+      <!-- ===== BEAM ===== -->
+      <div>
+        <strong>🔶 Beam</strong>
+        <div class="shape-selector" id="beam_shapes">
+          <button class="shape-btn active" onclick="setShape('beam','simple')" data-shape="simple">Simple Beam</button>
+          <button class="shape-btn" onclick="setShape('beam','slope')" data-shape="slope">Slope Beam</button>
+          <button class="shape-btn" onclick="setShape('beam','stepped')" data-shape="stepped">Stepped Beam</button>
+          <button class="shape-btn" onclick="setShape('beam','stepped2')" data-shape="stepped2">Stepped Beam 2</button>
+        </div>
+        <div class="visual-canvas-wrap">
+          <canvas id="beam_canvas" width="500" height="220"></canvas>
+        </div>
+        <div id="beam_inputs">
+          <div class="row" style="margin-top:8px;">
+            <div class="col"><label>Length (m)</label><input id="beam_len" type="number" min="0" step="0.01" placeholder="e.g. 5" oninput="updateVisual('beam')"></div>
+            <div class="col"><label>Breadth (m)</label><input id="beam_b" type="number" min="0" step="0.01" placeholder="e.g. 0.3" oninput="updateVisual('beam')"></div>
+            <div class="col"><label>Depth (m)</label><input id="beam_h" type="number" min="0" step="0.01" placeholder="e.g. 0.45" oninput="updateVisual('beam')"></div>
+          </div>
+          <div id="beam_extra_inputs" style="display:none;"></div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <div class="col">
+            <label>Mix Grade</label>
+            <select id="beam_grade" style="flex:1;" onchange="updateMixInfo('beam')">
+              <option>M10</option><option>M15</option><option selected>M20</option>
+              <option>M25</option><option>M30</option><option>M35</option>
+              <option>M40</option><option>M45</option><option>M50</option><option>M55</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="col" style="justify-content:flex-end;">
+            <button class="btn" style="margin-top:18px;" onclick="calcElement('beam')">Calculate &amp; Add</button>
+          </div>
+        </div>
+        <div id="beam_custom_grade" style="display:none; margin-top:6px;">
+          <label style="font-size:12px;">Custom fck (MPa)</label>
+          <input type="number" id="beam_custom_fck" placeholder="e.g. 60">
+        </div>
+        <div class="mix-info-row" style="margin-top:8px;">
+          <div class="mix-info-box"><div class="mv" id="bi_cement">8</div><div class="ml">Cement Bags/m³</div></div>
+          <div class="mix-info-box"><div class="mv" id="bi_ratio">1:1.5:3</div><div class="ml">C:S:A Ratio</div></div>
+          <div class="mix-info-box"><div class="mv" id="bi_wc">0.50</div><div class="ml">w/c Ratio</div></div>
+        </div>
+        <div class="qty-row">
+          <label>Qty (nos):</label>
+          <input id="beam_qty" type="number" value="1" min="1" step="1" style="width:70px;">
+          <label style="margin-left:8px;">Notes:</label>
+          <input id="beam_notes" type="text" placeholder="Remarks..." style="flex:1;">
+        </div>
+        <div id="beam_out" class="result-block" style="margin-top:10px;display:none;"></div>
+      </div>
+
+      <hr class="dashed">
+
+      <!-- ===== COLUMN ===== -->
+      <div>
+        <strong>🟦 Column</strong>
+        <div class="shape-selector" id="col_shapes">
+          <button class="shape-btn active" onclick="setShape('column','square')" data-shape="square">Square</button>
+          <button class="shape-btn" onclick="setShape('column','rectangle')" data-shape="rectangle">Rectangle</button>
+          <button class="shape-btn" onclick="setShape('column','round')" data-shape="round">Round</button>
+          <button class="shape-btn" onclick="setShape('column','lshape')" data-shape="lshape">L-Shape</button>
+          <button class="shape-btn" onclick="setShape('column','tshape')" data-shape="tshape">T-Shape</button>
+          <button class="shape-btn" onclick="setShape('column','plus')" data-shape="plus">+ Shape</button>
+          <button class="shape-btn" onclick="setShape('column','cshape')" data-shape="cshape">C-Shape</button>
+          <button class="shape-btn" onclick="setShape('column','hollowrect')" data-shape="hollowrect">Hollow Rect</button>
+        </div>
+        <div class="visual-canvas-wrap">
+          <canvas id="col_canvas" width="500" height="220"></canvas>
+        </div>
+        <div id="col_inputs">
+          <div class="row" style="margin-top:8px;">
+            <div class="col"><label>Length (m)</label><input id="col_len" type="number" min="0" step="0.01" placeholder="e.g. 0.3" oninput="updateVisual('column')"></div>
+            <div class="col"><label>Width (m)</label><input id="col_w" type="number" min="0" step="0.01" placeholder="e.g. 0.3" oninput="updateVisual('column')"></div>
+            <div class="col"><label>Height (m)</label><input id="col_h" type="number" min="0" step="0.01" placeholder="e.g. 3" oninput="updateVisual('column')"></div>
+          </div>
+          <div id="col_extra_inputs" style="display:none;"></div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <div class="col">
+            <label>Mix Grade</label>
+            <select id="col_grade" onchange="updateMixInfo('column')">
+              <option>M10</option><option>M15</option><option selected>M20</option>
+              <option>M25</option><option>M30</option><option>M35</option>
+              <option>M40</option><option>M45</option><option>M50</option><option>M55</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="col" style="justify-content:flex-end;">
+            <button class="btn" style="margin-top:18px;" onclick="calcElement('column')">Calculate &amp; Add</button>
+          </div>
+        </div>
+        <div id="col_custom_grade" style="display:none; margin-top:6px;">
+          <label style="font-size:12px;">Custom fck (MPa)</label>
+          <input type="number" id="col_custom_fck" placeholder="e.g. 60">
+        </div>
+        <div class="mix-info-row" style="margin-top:8px;">
+          <div class="mix-info-box"><div class="mv" id="ci_cement">8</div><div class="ml">Cement Bags/m³</div></div>
+          <div class="mix-info-box"><div class="mv" id="ci_ratio">1:1.5:3</div><div class="ml">C:S:A Ratio</div></div>
+          <div class="mix-info-box"><div class="mv" id="ci_wc">0.50</div><div class="ml">w/c Ratio</div></div>
+        </div>
+        <div class="qty-row">
+          <label>Qty (nos):</label>
+          <input id="col_qty" type="number" value="1" min="1" step="1" style="width:70px;">
+          <label style="margin-left:8px;">Notes:</label>
+          <input id="col_notes" type="text" placeholder="Remarks..." style="flex:1;">
+        </div>
+        <div id="col_out" class="result-block" style="margin-top:10px;display:none;"></div>
+      </div>
+
+      <hr class="dashed">
+
+      <!-- ===== FOOTING ===== -->
+      <div>
+        <strong>🟩 Footing</strong>
+        <div class="shape-selector" id="foot_shapes">
+          <button class="shape-btn active" onclick="setShape('footing','box')" data-shape="box">Box</button>
+          <button class="shape-btn" onclick="setShape('footing','trapezoidal')" data-shape="trapezoidal">Trapezoidal</button>
+          <button class="shape-btn" onclick="setShape('footing','combined')" data-shape="combined">Combined</button>
+          <button class="shape-btn" onclick="setShape('footing','stepped')" data-shape="stepped">Stepped</button>
+          <button class="shape-btn" onclick="setShape('footing','circular')" data-shape="circular">Circular</button>
+          <button class="shape-btn" onclick="setShape('footing','twostepped')" data-shape="twostepped">Two-Stepped</button>
+        </div>
+        <div class="visual-canvas-wrap">
+          <canvas id="foot_canvas" width="500" height="220"></canvas>
+        </div>
+        <div id="foot_inputs">
+          <div class="row" style="margin-top:8px;">
+            <div class="col"><label>Length (m)</label><input id="foot_len" type="number" min="0" step="0.01" placeholder="e.g. 1.5" oninput="updateVisual('footing')"></div>
+            <div class="col"><label>Width (m)</label><input id="foot_w" type="number" min="0" step="0.01" placeholder="e.g. 1.5" oninput="updateVisual('footing')"></div>
+            <div class="col"><label>Depth (m)</label><input id="foot_d" type="number" min="0" step="0.01" placeholder="e.g. 0.5" oninput="updateVisual('footing')"></div>
+          </div>
+          <div id="foot_extra_inputs" style="display:none;"></div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <div class="col">
+            <label>Mix Grade</label>
+            <select id="foot_grade" onchange="updateMixInfo('footing')">
+              <option>M10</option><option>M15</option><option selected>M20</option>
+              <option>M25</option><option>M30</option><option>M35</option>
+              <option>M40</option><option>M45</option><option>M50</option><option>M55</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="col" style="justify-content:flex-end;">
+            <button class="btn" style="margin-top:18px;" onclick="calcElement('footing')">Calculate &amp; Add</button>
+          </div>
+        </div>
+        <div id="foot_custom_grade" style="display:none; margin-top:6px;">
+          <label style="font-size:12px;">Custom fck (MPa)</label>
+          <input type="number" id="foot_custom_fck" placeholder="e.g. 60">
+        </div>
+        <div class="mix-info-row" style="margin-top:8px;">
+          <div class="mix-info-box"><div class="mv" id="fi_cement">8</div><div class="ml">Cement Bags/m³</div></div>
+          <div class="mix-info-box"><div class="mv" id="fi_ratio">1:1.5:3</div><div class="ml">C:S:A Ratio</div></div>
+          <div class="mix-info-box"><div class="mv" id="fi_wc">0.50</div><div class="ml">w/c Ratio</div></div>
+        </div>
+        <div class="qty-row">
+          <label>Qty (nos):</label>
+          <input id="foot_qty" type="number" value="1" min="1" step="1" style="width:70px;">
+          <label style="margin-left:8px;">Notes:</label>
+          <input id="foot_notes" type="text" placeholder="Remarks..." style="flex:1;">
+        </div>
+        <div id="foot_out" class="result-block" style="margin-top:10px;display:none;"></div>
+      </div>
+
+    </div>
+
+    <!-- Labour Cost Card -->
+    <div class="card">
+      <h3>Labour Cost Estimator</h3>
+      <div class="small muted">Add labour rates for your area. Results added to project cost summary.</div>
+      <div class="labour-grid" style="margin-top:10px;">
+        <div>
+          <label>Mason Rate (₹/day)</label>
+          <div style="display:flex;gap:6px;">
+            <select id="mason_rate_sel" onchange="labourSelChange('mason')">
+              <option value="600">₹600</option><option value="700">₹700</option>
+              <option value="800">₹800</option><option value="900">₹900</option>
+              <option value="1000">₹1000</option><option value="1200">₹1200</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <input id="mason_rate" type="number" value="700" min="0" style="margin-top:4px;" placeholder="Rate per day">
+        </div>
+        <div>
+          <label>Helper Rate (₹/day)</label>
+          <div style="display:flex;gap:6px;">
+            <select id="helper_rate_sel" onchange="labourSelChange('helper')">
+              <option value="400">₹400</option><option value="500">₹500</option>
+              <option value="600">₹600</option><option value="700">₹700</option>
+              <option value="800">₹800</option><option value="custom">Custom</option>
+            </select>
+          </div>
+          <input id="helper_rate" type="number" value="500" min="0" style="margin-top:4px;" placeholder="Rate per day">
+        </div>
+        <div>
+          <label>Carpenter Rate (₹/day)</label>
+          <div style="display:flex;gap:6px;">
+            <select id="carp_rate_sel" onchange="labourSelChange('carp')">
+              <option value="700">₹700</option><option value="800">₹800</option>
+              <option value="900">₹900</option><option value="1000">₹1000</option>
+              <option value="1200">₹1200</option><option value="custom">Custom</option>
+            </select>
+          </div>
+          <input id="carp_rate" type="number" value="800" min="0" style="margin-top:4px;" placeholder="Rate per day">
+        </div>
+        <div>
+          <label>Work Days</label>
+          <input id="labour_days" type="number" value="30" min="1" placeholder="e.g. 30">
+        </div>
+        <div>
+          <label>No. of Masons</label>
+          <input id="mason_count" type="number" value="2" min="0">
+        </div>
+        <div>
+          <label>No. of Helpers</label>
+          <input id="helper_count" type="number" value="4" min="0">
+        </div>
+        <div>
+          <label>No. of Carpenters</label>
+          <input id="carp_count" type="number" value="1" min="0">
+        </div>
+      </div>
+      <button class="btn" style="margin-top:10px;" onclick="calcLabour()">Calculate Labour Cost</button>
+      <div id="labour_out" class="result-block" style="margin-top:10px;display:none;"></div>
+    </div>
+
+  </div><!-- end left panel -->
+
+  <!-- RIGHT: Estimate Summary -->
+  <aside class="summary">
+    <div class="card">
+      <h4>Estimate Summary</h4>
+      <div class="small muted">Enter local rates below and add items from calculators.</div>
+
+      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label>Cement (₹/50kg bag)</label><input id="rate_cement" type="number" step="0.01" placeholder="e.g. 420" oninput="syncRateInputs('cement',this.value)"></div>
+        <div><label>Sand (₹/m³)</label><input id="rate_sand" type="number" step="0.01" placeholder="e.g. 1600" oninput="syncRateInputs('sand',this.value)"></div>
+        <div><label>Aggregate (₹/m³)</label><input id="rate_agg" type="number" step="0.01" placeholder="e.g. 2000" oninput="syncRateInputs('agg',this.value)"></div>
+        <div><label>Steel (₹/kg)</label><input id="rate_steel" type="number" step="0.01" placeholder="e.g. 70" oninput="syncRateInputs('steel',this.value)"></div>
+      </div>
+
+      <button class="btn" style="margin-top:10px;" onclick="recomputeEstimate()">Recompute Estimate</button>
+
+      <!-- Save / Load Estimate -->
+      <div class="save-load-row">
+        <button class="btn btn-sm btn-sm-green" onclick="saveEstimateJSON()">💾 Save Estimate</button>
+        <label class="btn btn-sm btn-sm-blue" style="cursor:pointer;">📂 Load Estimate<input type="file" accept=".json" style="display:none;" onchange="loadEstimateJSON(this)"></label>
+      </div>
+
+      <div class="estimate-table-wrap">
+        <table id="estimate_table">
+          <thead>
+            <tr>
+              <th>#</th><th>Item</th><th>Vol (m³)</th><th>Cement (bags)</th>
+              <th>Sand (m³)</th><th>Agg (m³)</th><th>Steel (kg)</th>
+              <th>Grade</th><th>Cost (₹)</th><th>Notes</th><th>Del</th>
+            </tr>
+          </thead>
+          <tbody id="estimate_tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="total-line">
+        <div>Total Project Cost</div>
+        <div id="estimate_total">₹ 0</div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" style="flex:1;" onclick="exportPDF()">📄 Export PDF</button>
+        <button class="btn btn-orange" style="flex:1;" onclick="printReport()">🖨 Print</button>
+        <button class="btn btn-red" style="flex:1;" onclick="clearEstimate()">🗑 Clear All</button>
+      </div>
+      <div class="tiny" style="margin-top:8px;">Tip: Your estimate is auto-saved and persists across all pages.</div>
+    </div>
+
+    <div class="card">
+      <h4>IS Codes &amp; Notes</h4>
+      <ul class="is-list">
+        <li><strong>IS 456</strong> : Plain &amp; Reinforced Concrete</li>
+        <li><strong>IS 10262</strong> : Concrete Mix Design</li>
+        <li><strong>IS 383</strong> : Aggregates for Concrete</li>
+        <li><strong>IS 875</strong> : Loads — Dead, Live</li>
+        <li><strong>IS 1893</strong> : Earthquake Resistant Design</li>
+      </ul>
+    </div>
+  </aside>
+
+</div><!-- .content -->
+
+<!-- Dark/Light Mode Toggle -->
+<button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode" id="themeBtn">🌙</button>
+
+<script src="script.js"></script>
+<script src="visuals.js"></script>
+<script>
+/* ===== SHAPE SELECTION ===== */
+const elementShapes = { slab:'simple', beam:'simple', column:'square', footing:'box' };
+
+function setShape(type, shape) {
+  elementShapes[type] = shape;
+  const prefix = type === 'column' ? 'col' : type === 'footing' ? 'foot' : type;
+  const container = document.getElementById(prefix + '_shapes') || document.getElementById(type + '_shapes');
+  if (container) {
+    container.querySelectorAll('.shape-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.shape === shape);
+    });
+  }
+
+  // Show/hide extra inputs based on shape
+  updateExtraInputs(type, shape);
+  updateVisual(type);
+}
+
+function updateExtraInputs(type, shape) {
+  if (type === 'slab') {
+    document.getElementById('slab_slope_extra').style.display = shape === 'slope' ? 'block' : 'none';
+  }
+  if (type === 'beam') {
+    const ex = document.getElementById('beam_extra_inputs');
+    if (shape === 'stepped' || shape === 'stepped2') {
+      ex.style.display = 'block';
+      ex.innerHTML = `<div class="row" style="margin-top:6px;">
+        <div class="col"><label>Step 2 Breadth (m)</label><input id="beam_b2" type="number" step="0.01" placeholder="e.g. 0.5" oninput="updateVisual('beam')"></div>
+        <div class="col"><label>Step 2 Depth (m)</label><input id="beam_h2" type="number" step="0.01" placeholder="e.g. 0.2" oninput="updateVisual('beam')"></div>
+      </div>`;
+    } else { ex.style.display = 'none'; ex.innerHTML = ''; }
+  }
+  if (type === 'column') {
+    const ex = document.getElementById('col_extra_inputs');
+    if (['lshape','tshape','plus','cshape','hollowrect'].includes(shape)) {
+      ex.style.display = 'block';
+      const label2 = shape === 'hollowrect' ? 'Inner Length (m)' : 'Flange Width (m)';
+      const label3 = shape === 'hollowrect' ? 'Inner Width (m)' : 'Flange Thickness (m)';
+      ex.innerHTML = `<div class="row" style="margin-top:6px;">
+        <div class="col"><label>${label2}</label><input id="col_fw" type="number" step="0.01" placeholder="e.g. 0.2" oninput="updateVisual('column')"></div>
+        <div class="col"><label>${label3}</label><input id="col_ft" type="number" step="0.01" placeholder="e.g. 0.1" oninput="updateVisual('column')"></div>
+      </div>`;
+    } else if (shape === 'round') {
+      ex.style.display = 'none'; ex.innerHTML = '';
+      // For round, Length = Diameter
+      document.querySelector('#col_inputs label').textContent = 'Diameter (m)';
+    } else { ex.style.display = 'none'; ex.innerHTML = ''; }
+  }
+  if (type === 'footing') {
+    const ex = document.getElementById('foot_extra_inputs');
+    if (shape === 'trapezoidal') {
+      ex.style.display = 'block';
+      ex.innerHTML = `<div class="row" style="margin-top:6px;">
+        <div class="col"><label>Top Length (m)</label><input id="foot_tl" type="number" step="0.01" placeholder="e.g. 0.5" oninput="updateVisual('footing')"></div>
+        <div class="col"><label>Top Width (m)</label><input id="foot_tw" type="number" step="0.01" placeholder="e.g. 0.5" oninput="updateVisual('footing')"></div>
+      </div>`;
+    } else if (shape === 'combined') {
+      ex.style.display = 'block';
+      ex.innerHTML = `<div class="row" style="margin-top:6px;">
+        <div class="col"><label>Column Spacing (m)</label><input id="foot_cs" type="number" step="0.01" placeholder="e.g. 3" oninput="updateVisual('footing')"></div>
+      </div>`;
+    } else if (shape === 'stepped' || shape === 'twostepped') {
+      ex.style.display = 'block';
+      ex.innerHTML = `<div class="row" style="margin-top:6px;">
+        <div class="col"><label>Step 2 Length (m)</label><input id="foot_l2" type="number" step="0.01" placeholder="e.g. 1.0" oninput="updateVisual('footing')"></div>
+        <div class="col"><label>Step 2 Width (m)</label><input id="foot_w2" type="number" step="0.01" placeholder="e.g. 1.0" oninput="updateVisual('footing')"></div>
+        <div class="col"><label>Step 2 Depth (m)</label><input id="foot_d2" type="number" step="0.01" placeholder="e.g. 0.3" oninput="updateVisual('footing')"></div>
+      </div>`;
+    } else if (shape === 'circular') {
+      ex.style.display = 'none'; ex.innerHTML = '';
+    } else { ex.style.display = 'none'; ex.innerHTML = ''; }
+  }
+}
+
+/* ===== MIX INFO UPDATE ===== */
+const MIX_INFO = {
+  M10:{bags:6,ratio:'1:3:6',wc:0.60,water:210},
+  M15:{bags:7,ratio:'1:2:4',wc:0.55,water:200},
+  M20:{bags:8,ratio:'1:1.5:3',wc:0.50,water:186},
+  M25:{bags:9,ratio:'1:1:2',wc:0.45,water:186},
+  M30:{bags:10,ratio:'Design',wc:0.42,water:175},
+  M35:{bags:11,ratio:'Design',wc:0.40,water:170},
+  M40:{bags:12,ratio:'Design',wc:0.38,water:165},
+  M45:{bags:13,ratio:'Design',wc:0.36,water:160},
+  M50:{bags:14,ratio:'Design',wc:0.35,water:155},
+  M55:{bags:15,ratio:'Design',wc:0.34,water:150},
+};
+
+function updateMixInfo(type) {
+  const prefix = type === 'column' ? 'col' : type === 'footing' ? 'foot' : type;
+  const abbr = type === 'slab' ? 'si' : type === 'beam' ? 'bi' : type === 'column' ? 'ci' : 'fi';
+  const sel = document.getElementById(prefix + '_grade');
+  if (!sel) return;
+  const grade = sel.value;
+  if (grade === 'custom') {
+    document.getElementById(prefix + '_custom_grade').style.display = 'block';
+    return;
+  } else {
+    const cg = document.getElementById(prefix + '_custom_grade');
+    if (cg) cg.style.display = 'none';
+  }
+  const info = MIX_INFO[grade] || MIX_INFO['M20'];
+  document.getElementById(abbr + '_cement').textContent = info.bags;
+  document.getElementById(abbr + '_ratio').textContent = info.ratio;
+  document.getElementById(abbr + '_wc').textContent = info.wc;
+  if (type === 'slab') {
+    document.getElementById('si_water').textContent = info.water;
+  }
+}
+
+/* ===== CUSTOM GRADE VOLUME CALC ===== */
+function getGradeForElement(prefix) {
+  const sel = document.getElementById(prefix + '_grade');
+  if (!sel) return 'M20';
+  if (sel.value === 'custom') {
+    const v = document.getElementById(prefix + '_custom_fck');
+    if (v && parseFloat(v.value) > 0) return 'M' + v.value;
+  }
+  return sel.value;
+}
+
+/* ===== OVERRIDE calcElement for shapes ===== */
+const _origCalcElement = window.calcElement;
+window.calcElement = function(type) {
+  const shape = elementShapes[type] || 'simple';
+  let vol = 0, grade = 'M20', label = '', outEl, qty = 1, notes = '';
+
+  const sn = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+
+  if (type === 'slab') {
+    const L = sn(document.getElementById('slab_len').value);
+    const W = sn(document.getElementById('slab_wid').value);
+    const T = sn(document.getElementById('slab_thk').value);
+    grade = getGradeForElement('slab');
+    qty = sn(document.getElementById('slab_qty').value) || 1;
+    notes = document.getElementById('slab_notes').value;
+    outEl = document.getElementById('slab_out');
+    if (shape === 'slope') {
+      const rise = sn(document.getElementById('slab_rise') ? document.getElementById('slab_rise').value : 0);
+      const slantL = Math.sqrt(L * L + rise * rise);
+      vol = slantL * W * T;
+      label = 'Slope Slab ' + L + '×' + W + '×' + T + 'm (Rise:' + rise + ')';
+    } else {
+      vol = L * W * T;
+      label = 'Slab ' + L + '×' + W + '×' + T + 'm';
+    }
+
+  } else if (type === 'beam') {
+    const L = sn(document.getElementById('beam_len').value);
+    const B = sn(document.getElementById('beam_b').value);
+    const H = sn(document.getElementById('beam_h').value);
+    grade = getGradeForElement('beam');
+    qty = sn(document.getElementById('beam_qty').value) || 1;
+    notes = document.getElementById('beam_notes').value;
+    outEl = document.getElementById('beam_out');
+    if (shape === 'stepped' || shape === 'stepped2') {
+      const B2 = sn(document.getElementById('beam_b2') ? document.getElementById('beam_b2').value : 0);
+      const H2 = sn(document.getElementById('beam_h2') ? document.getElementById('beam_h2').value : 0);
+      vol = L * B * H + L * B2 * H2;
+      label = 'Stepped Beam ' + L + 'm';
+    } else if (shape === 'slope') {
+      vol = L * B * H * 0.5;
+      label = 'Slope Beam ' + L + '×' + B + '×' + H + 'm';
+    } else {
+      vol = L * B * H;
+      label = 'Beam ' + L + '×' + B + '×' + H + 'm';
+    }
+
+  } else if (type === 'column') {
+    const L = sn(document.getElementById('col_len').value);
+    const W = sn(document.getElementById('col_w').value);
+    const H = sn(document.getElementById('col_h').value);
+    grade = getGradeForElement('col');
+    qty = sn(document.getElementById('col_qty').value) || 1;
+    notes = document.getElementById('col_notes').value;
+    outEl = document.getElementById('col_out');
+    const FW = sn(document.getElementById('col_fw') ? document.getElementById('col_fw').value : 0);
+    const FT = sn(document.getElementById('col_ft') ? document.getElementById('col_ft').value : 0);
+    if (shape === 'round') {
+      vol = Math.PI * (L / 2) * (L / 2) * H;
+      label = 'Round Column Dia' + L + '×H' + H + 'm';
+    } else if (shape === 'lshape') {
+      vol = (L * W + FW * FT) * H;
+      label = 'L-Shape Column ' + L + '×' + W + '×' + H + 'm';
+    } else if (shape === 'tshape') {
+      vol = (L * W + FW * FT) * H;
+      label = 'T-Shape Column ' + L + '×' + W + '×' + H + 'm';
+    } else if (shape === 'plus') {
+      vol = (L * W + FW * FT) * H;
+      label = '+ Shape Column ' + H + 'm';
+    } else if (shape === 'cshape') {
+      vol = (L * W - (L - FT) * (W - FW)) * H;
+      label = 'C-Shape Column ' + H + 'm';
+    } else if (shape === 'hollowrect') {
+      vol = (L * W - FW * FT) * H;
+      label = 'Hollow Rect Column ' + L + '×' + W + '×' + H + 'm';
+    } else {
+      vol = L * W * H;
+      label = 'Column ' + L + '×' + W + '×' + H + 'm';
+    }
+
+  } else if (type === 'footing') {
+    const L = sn(document.getElementById('foot_len').value);
+    const W = sn(document.getElementById('foot_w').value);
+    const D = sn(document.getElementById('foot_d').value);
+    grade = getGradeForElement('foot');
+    qty = sn(document.getElementById('foot_qty').value) || 1;
+    notes = document.getElementById('foot_notes').value;
+    outEl = document.getElementById('foot_out');
+    if (shape === 'trapezoidal') {
+      const TL = sn(document.getElementById('foot_tl') ? document.getElementById('foot_tl').value : 0);
+      const TW = sn(document.getElementById('foot_tw') ? document.getElementById('foot_tw').value : 0);
+      vol = D * ((L * W + TL * TW + Math.sqrt(L * W * TL * TW)) / 3);
+      label = 'Trap. Footing ' + L + '×' + W + '×' + D + 'm';
+    } else if (shape === 'combined') {
+      vol = L * W * D;
+      label = 'Combined Footing ' + L + '×' + W + 'm';
+    } else if (shape === 'circular') {
+      vol = Math.PI * (L / 2) * (L / 2) * D;
+      label = 'Circular Footing Dia' + L + '×D' + D + 'm';
+    } else if (shape === 'stepped' || shape === 'twostepped') {
+      const L2 = sn(document.getElementById('foot_l2') ? document.getElementById('foot_l2').value : 0);
+      const W2 = sn(document.getElementById('foot_w2') ? document.getElementById('foot_w2').value : 0);
+      const D2 = sn(document.getElementById('foot_d2') ? document.getElementById('foot_d2').value : 0);
+      vol = L * W * D + L2 * W2 * D2;
+      label = 'Stepped Footing ' + L + '×' + W + '+' + L2 + '×' + W2;
+    } else {
+      vol = L * W * D;
+      label = 'Footing ' + L + '×' + W + '×' + D + 'm';
+    }
+  }
+
+  if (!outEl) return;
+
+  if (vol <= 0) {
+    outEl.style.display = 'block';
+    outEl.innerHTML = '<span style="color:#dc2626;">⚠ Enter valid positive dimensions.</span>';
+    return;
+  }
+
+  const totalVol = vol * qty;
+  const mat = materialsForGrade(grade, totalVol);
+  const item = {
+    label: qty > 1 ? label + ' ×' + qty : label,
+    vol: mat.volume, grade,
+    cementBags: mat.cementBags, sand_m3: mat.sand_m3,
+    agg_m3: mat.agg_m3, cement_kg: mat.cement_kg,
+    steel_kg: 0, cost: 0, notes: notes
+  };
+
+  const encoded = encodeURIComponent(JSON.stringify(item));
+  outEl.style.display = 'block';
+  outEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+      <div><strong>Volume:</strong> ${totalVol.toFixed(3)} m³${qty > 1 ? ' (' + qty + '×' + vol.toFixed(3) + ')' : ''}</div>
+      <div><strong>Grade:</strong> ${grade}</div>
+      <div><strong>Cement:</strong> ${mat.cementBags.toFixed(2)} bags</div>
+      <div><strong>Sand:</strong> ${mat.sand_m3.toFixed(3)} m³</div>
+      <div><strong>Aggregate:</strong> ${mat.agg_m3.toFixed(3)} m³</div>
+    </div>
+    <button class="btn" onclick="addItemToEstimate(decodeURIComponent('${encoded}'))">+ Add to Estimate</button>
+  `;
+};
+
+/* ===== LABOUR CALC ===== */
+function labourSelChange(type) {
+  const map = { mason:'mason_rate', helper:'helper_rate', carp:'carp_rate' };
+  const selMap = { mason:'mason_rate_sel', helper:'helper_rate_sel', carp:'carp_rate_sel' };
+  const v = document.getElementById(selMap[type]).value;
+  if (v !== 'custom') document.getElementById(map[type]).value = v;
+}
+
+function calcLabour() {
+  const mRate = parseFloat(document.getElementById('mason_rate').value) || 0;
+  const hRate = parseFloat(document.getElementById('helper_rate').value) || 0;
+  const cRate = parseFloat(document.getElementById('carp_rate').value) || 0;
+  const days = parseFloat(document.getElementById('labour_days').value) || 0;
+  const mCount = parseFloat(document.getElementById('mason_count').value) || 0;
+  const hCount = parseFloat(document.getElementById('helper_count').value) || 0;
+  const cCount = parseFloat(document.getElementById('carp_count').value) || 0;
+
+  const mTotal = mRate * days * mCount;
+  const hTotal = hRate * days * hCount;
+  const cTotal = cRate * days * cCount;
+  const grand = mTotal + hTotal + cTotal;
+
+  const out = document.getElementById('labour_out');
+  out.style.display = 'block';
+  out.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div><strong>Mason Cost:</strong> ₹${mTotal.toLocaleString('en-IN')}</div>
+      <div><strong>Helper Cost:</strong> ₹${hTotal.toLocaleString('en-IN')}</div>
+      <div><strong>Carpenter Cost:</strong> ₹${cTotal.toLocaleString('en-IN')}</div>
+      <div><strong>Total Labour:</strong> <span style="color:#0b7dda;font-size:16px;">₹${grand.toLocaleString('en-IN')}</span></div>
+    </div>
+    <button class="btn" style="margin-top:8px;" onclick="addLabourToEstimate(${grand})">+ Add to Estimate</button>
+  `;
+}
+
+function addLabourToEstimate(cost) {
+  const days = document.getElementById('labour_days').value;
+  estimateItems.push({
+    label: 'Labour Cost (' + days + ' days)',
+    vol: 0, grade: '-', cementBags: 0, sand_m3: 0,
+    agg_m3: 0, cement_kg: 0, steel_kg: 0, cost: cost, notes: 'Labour'
+  });
+  saveEstimate();
+  refreshEstimateTable();
+  alert('Labour cost added to estimate!');
+}
+
+/* ===== PROJECT INFO ===== */
+function saveProjectInfo() {
+  const info = {
+    name: document.getElementById('proj_name').value,
+    engineer: document.getElementById('proj_engineer').value,
+    client: document.getElementById('proj_client').value
+  };
+  localStorage.setItem('civilcalc_project', JSON.stringify(info));
+  alert('Project info saved!');
+}
+
+function loadProjectInfo() {
+  try {
+    const raw = localStorage.getItem('civilcalc_project');
+    if (!raw) return;
+    const info = JSON.parse(raw);
+    if (document.getElementById('proj_name')) document.getElementById('proj_name').value = info.name || '';
+    if (document.getElementById('proj_engineer')) document.getElementById('proj_engineer').value = info.engineer || '';
+    if (document.getElementById('proj_client')) document.getElementById('proj_client').value = info.client || '';
+  } catch (e) {}
+}
+
+/* ===== SAVE / LOAD ESTIMATE JSON ===== */
+function saveEstimateJSON() {
+  const data = { items: estimateItems, rates: {
+    cement: document.getElementById('rate_cement').value,
+    sand: document.getElementById('rate_sand').value,
+    agg: document.getElementById('rate_agg').value,
+    steel: document.getElementById('rate_steel').value
+  }};
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'CivilCalci_Estimate.json';
+  a.click();
+}
+
+function loadEstimateJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.items) { estimateItems = data.items; saveEstimate(); refreshEstimateTable(); }
+      if (data.rates) {
+        ['cement','sand','agg','steel'].forEach(f => {
+          const el = document.getElementById('rate_' + f);
+          if (el && data.rates[f]) el.value = data.rates[f];
+        });
+        saveRates();
+      }
+      alert('Estimate loaded successfully!');
+    } catch (err) { alert('Invalid file format.'); }
+  };
+  reader.readAsText(file);
+}
+
+/* ===== THEME TOGGLE ===== */
+function toggleTheme() {
+  document.body.classList.toggle('light-mode');
+  const btn = document.getElementById('themeBtn');
+  btn.textContent = document.body.classList.contains('light-mode') ? '🌙' : '☀️';
+  localStorage.setItem('civilcalc_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+}
+
+/* Init */
+document.addEventListener('DOMContentLoaded', function() {
+  loadProjectInfo();
+  // Theme
+  if (localStorage.getItem('civilcalc_theme') === 'light') {
+    document.body.classList.add('light-mode');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }
+  // Init visuals
+  ['slab','beam','column','footing'].forEach(t => updateVisual(t));
+  // Init mix info
+  ['slab','beam','column','footing'].forEach(t => {
+    const prefix = t === 'column' ? 'col' : t === 'footing' ? 'foot' : t;
+    updateMixInfo(t);
+    const sel = document.getElementById(prefix + '_grade');
+    if (sel) sel.addEventListener('change', () => updateMixInfo(t));
+  });
+});
+</script>
+</body>
+</html>
